@@ -146,8 +146,63 @@ export default function ProductDetailContent() {
       return {
         id: storedProduct.id, name: storedProduct.name, image: storedProduct.image,
         imageAlt: storedProduct.imageAlt, stage: storedProduct.stage,
-        updates: { tasks: [], updates: [] },
-        quotes: { steps: [], supplierCount: 0, totalSuppliers: 0 },
+        updates: {
+          tasks: [],
+          updates: [
+            {
+              id: 'rfq-submitted',
+              title: 'RFQ submitted via AI sourcing agent',
+              description: storedProduct.description
+                ? `Product: ${storedProduct.name}. ${storedProduct.description}${storedProduct.moq ? ` MOQ: ${storedProduct.moq}.` : ''}`
+                : `Your RFQ for "${storedProduct.name}" has been submitted. Proquoment is now matching you with verified manufacturers.`,
+              date: storedProduct.updated,
+              supplier: 'Proquoment AI',
+              replies: 0,
+            },
+          ],
+        },
+        quotes: {
+          steps: [
+            {
+              id: 1,
+              label: 'Matching suppliers',
+              highlight: 'verified manufacturers',
+              highlightSuffix: ' in our network',
+              description: 'We are scanning our supplier network for the best matches.',
+              status: 'active' as const,
+              inProgress: true,
+            },
+            {
+              id: 2,
+              label: 'Sending RFQ to shortlist',
+              highlight: null,
+              highlightSuffix: '',
+              description: 'Your RFQ will be sent to matched suppliers for pricing.',
+              status: 'pending' as const,
+              inProgress: false,
+            },
+            {
+              id: 3,
+              label: 'Receiving quotes',
+              highlight: null,
+              highlightSuffix: '',
+              description: 'Supplier quotes will appear here once received.',
+              status: 'pending' as const,
+              inProgress: false,
+            },
+            {
+              id: 4,
+              label: 'Review & select',
+              highlight: null,
+              highlightSuffix: '',
+              description: 'Compare quotes and select your preferred supplier.',
+              status: 'pending' as const,
+              inProgress: false,
+            },
+          ],
+          supplierCount: 0,
+          totalSuppliers: 165,
+        },
         orders: { orders: [], steps: [] },
         files: [],
         samples: { samples: [], references: [] },

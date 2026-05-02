@@ -6,8 +6,9 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import StageBadge from '@/components/ui/StageBadge';
 import ChatButton from '@/components/ui/ChatButton';
 import { productService, DbProduct } from '@/lib/services/dbService';
+import { getStoredProducts } from '@/lib/productStore';
 import { ALL_PRODUCT_DETAIL_DATA } from '@/lib/productDetailData';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 type Tab = 'sourcing' | 'drafts' | 'archived';
 
@@ -27,28 +28,59 @@ const STATIC_PRODUCTS: DbProduct[] = Object.values(ALL_PRODUCT_DETAIL_DATA).map(
   isStatic: true,
 }));
 
+function mergeWithLocalStorage(base: DbProduct[]): DbProduct[] {
+  const stored = getStoredProducts();
+  if (!stored.length) return base;
+
+  // Convert localStorage products to DbProduct shape, skip any already in base
+  const baseIds = new Set(base.map((p) => p.id));
+  const localAsDb: DbProduct[] = stored
+    .filter((p) => !baseIds.has(p.id))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      description: p.description,
+      moq: p.moq,
+      image: p.image,
+      imageAlt: p.imageAlt,
+      stage: p.stage as DbProduct['stage'],
+      status: p.status as DbProduct['status'],
+      updated: p.updated,
+      ownerId: '',
+      organizationId: null,
+      isStatic: false,
+    }));
+
+  // Prepend localStorage (newest first)
+  return [...localAsDb, ...base];
+}
+
 export default function ProductsListContent() {
   const [activeTab, setActiveTab] = useState<Tab>('sourcing');
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadProducts = async () => {
+    try {
+      const data = await productService.getAll();
+      const base = data && data.length > 0 ? data : STATIC_PRODUCTS;
+      setProducts(mergeWithLocalStorage(base));
+    } catch {
+      setProducts(mergeWithLocalStorage(STATIC_PRODUCTS));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await productService.getAll();
-        if (data && data.length > 0) {
-          setProducts(data);
-        } else {
-          setProducts(STATIC_PRODUCTS);
-        }
-      } catch (err) {
-        console.error('Failed to load products:', err);
-        setProducts(STATIC_PRODUCTS);
-      } finally {
-        setLoading(false);
-      }
+    loadProducts();
+    // Re-merge whenever a new RFQ product is saved
+    const refresh = () => {
+      setProducts((prev) => mergeWithLocalStorage(prev));
     };
-    load();
+    window.addEventListener('proquoment_products_updated', refresh);
+    return () => window.removeEventListener('proquoment_products_updated', refresh);
   }, []);
 
   const sourcingProducts = products.filter((p) => p.stage !== 'Draft');
@@ -63,7 +95,16 @@ export default function ProductsListContent() {
 
   return (
     <div className="px-8 py-8 max-w-screen-2xl mx-auto">
-      <h1 className="text-2xl font-bold text-[var(--foreground)] mb-5">Products</h1>
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="text-2xl font-bold text-[var(--foreground)]">Products</h1>
+        <Link
+          href="/new-product"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-[#2e29c4] active:scale-95 transition-all duration-150"
+        >
+          <Sparkles size={14} />
+          New Product
+        </Link>
+      </div>
 
       {/* Tabs */}
       <div className="border-b border-[var(--border)] mb-6">
@@ -95,7 +136,6 @@ export default function ProductsListContent() {
         </div>
       )}
 
-      {/* Tab content — keyed to trigger fade-in on tab switch */}
       {!loading && (
         <div key={activeTab} className="animate-fade-in">
           {activeTab === 'sourcing' && (
@@ -111,8 +151,11 @@ export default function ProductsListContent() {
                   <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">Updated</span>
                 </div>
                 {sourcingProducts.length === 0 && (
-                  <div className="px-5 py-8 text-center text-sm text-[var(--muted-foreground)]">
-                    No sourcing products yet.
+                  <div className="px-5 py-12 text-center">
+                    <p className="text-sm text-[var(--muted-foreground)] mb-3">No sourcing products yet.</p>
+                    <Link href="/new-product" className="text-sm text-primary font-medium hover:underline">
+                      Create your first RFQ →
+                    </Link>
                   </div>
                 )}
                 {sourcingProducts.map((product, i) => (
@@ -139,10 +182,17 @@ export default function ProductsListContent() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <span className="text-sm font-medium text-[var(--foreground)] truncate group-hover:text-primary transition-colors duration-150 block">
-                          {product.name}
-                        </span>
-                        {product.category && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-[var(--foreground)] truncate group-hover:text-primary transition-colors duration-150 block">
+                            {product.name}
+                          </span>
+                          {!product.isStatic && (
+                            <span className="flex-shrink-0 text-[10px] font-semibold text-primary bg-[var(--secondary)] px-2 py-0.5 rounded-full">
+                              AI RFQ
+                            </span>
+                          )}
+                        </div>
+                        {(product.category || product.moq) && (
                           <span className="text-xs text-[var(--muted-foreground)]">
                             {product.category}{product.moq ? ` · MOQ: ${product.moq}` : ''}
                           </span>
