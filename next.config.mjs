@@ -18,6 +18,9 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
 
-  devIndicators: false,
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+  },
 };
 export default nextConfig;

@@ -3,8 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Package, Building2, Settings, ChevronLeft, ChevronRight, Sparkles, LogOut } from 'lucide-react';
-import { productService, DbProduct, userProfileService } from '@/lib/services/dbService';
-import { getStoredOrg, onOrgUpdated, DEFAULT_ORG } from '@/lib/orgStore';
+import { productService, DbProduct } from '@/lib/services/dbService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
@@ -19,22 +18,12 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const [productsExpanded, setProductsExpanded] = useState(true);
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [userEmail, setUserEmail] = useState('');
-  const [orgName, setOrgName] = useState(DEFAULT_ORG.name);
   const [signingOut, setSigningOut] = useState(false);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
-
-  // Hydrate from localStorage after mount, then keep in sync on save
-  useEffect(() => {
-    setOrgName(getStoredOrg().name);
-    const unsubscribe = onOrgUpdated(() => {
-      setOrgName(getStoredOrg().name);
-    });
-    return unsubscribe;
-  }, []);
 
   useEffect(() => {
     if (user?.email) setUserEmail(user.email);
@@ -86,11 +75,11 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
         transition: 'width 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
-      {/* Logo / Org Switcher */}
-      <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)] min-h-[56px] overflow-hidden">
-        <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-[var(--muted)] rounded-lg px-2 py-1.5 transition-colors duration-150">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0 transition-all duration-200">
-            {(orgName || 'H').charAt(0).toUpperCase()}
+      {/* Logo / Brand */}
+      <div className="flex items-center px-3 py-3 border-b border-[var(--border)] min-h-[56px] overflow-hidden">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-[#1e1b6e] flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <img src="/proquoment-logo.png" alt="Proquoment" className="w-6 h-6 object-contain" />
           </div>
           <div
             className="overflow-hidden"
@@ -100,8 +89,8 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
               transition: 'max-width 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
             }}
           >
-            <span className="text-sm font-semibold text-[var(--foreground)] truncate whitespace-nowrap block">
-              {orgName}
+            <span className="text-sm font-bold text-[var(--foreground)] truncate whitespace-nowrap block tracking-tight">
+              Proquoment
             </span>
           </div>
         </div>
