@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Package, Building2, Settings, ChevronDown, ChevronLeft, ChevronRight, Sparkles, LogOut } from 'lucide-react';
+import { LayoutDashboard, Package, Building2, Settings, ChevronLeft, ChevronRight, Sparkles, LogOut } from 'lucide-react';
 import { productService, DbProduct, userProfileService } from '@/lib/services/dbService';
 import { getStoredOrg, onOrgUpdated, DEFAULT_ORG } from '@/lib/orgStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -104,9 +104,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
               {orgName}
             </span>
           </div>
-          {open && (
-            <ChevronDown size={14} className="text-[var(--muted-foreground)] flex-shrink-0 ml-auto transition-transform duration-150" />
-          )}
         </div>
       </div>
 
@@ -151,12 +148,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
             >
               Products
             </span>
-            {open && (
-              <ChevronDown
-                size={14}
-                className={`flex-shrink-0 transition-transform duration-250 ${productsExpanded ? 'rotate-0' : '-rotate-90'}`}
-              />
-            )}
             {!open && (
               <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--foreground)] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
                 Products
