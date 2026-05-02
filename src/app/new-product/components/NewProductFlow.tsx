@@ -7,7 +7,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useChat } from '@/lib/hooks/useChat';
 import { getChatCompletion } from '@/lib/ai/chatCompletion';
 import ChatButton from '@/components/ui/ChatButton';
-import { ArrowRight, Eye, Send, Plus, Loader2, CheckCircle, Sparkles, Bot } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip } from 'lucide-react';
 import { saveProduct } from '@/lib/productStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -33,43 +33,52 @@ interface RFQData {
 }
 
 // ─── System prompt for conversational text (NO JSON) ─────────────────────────
-const CHAT_SYSTEM_PROMPT = `You are a precision procurement RFQ agent for Proquoment, a B2B sourcing platform. Your job is to extract exact, manufacturer-ready specifications by asking one focused question at a time — always with number-driven, quantified answer choices.
+const CHAT_SYSTEM_PROMPT = `You are a precision procurement RFQ agent for Proquoment, a B2B sourcing platform. Help the buyer build a complete, manufacturer-ready RFQ through intelligent, focused questions.
+
+RESPONSE FORMAT — follow this structure exactly every time:
+1. One short sentence confirming or acknowledging the last answer (skip on first message).
+2. **Bold question** — the single most important missing specification.
+3. Bullet list of 3–4 options in this exact format:
+   • **Option Name** – brief explanation or example with real numbers/units
+   • **Option Name** – brief explanation or example with real numbers/units
+4. Optional: 💡 One concise tip about cost, quality, or certification impact.
+5. REQUIRED final line: OPTIONS: option1, option2, option3, option4
 
 BEHAVIOR:
-1. Read the product description carefully. Identify the single most critical missing numeric or measurable detail.
-2. Ask ONE direct question in 1 sentence.
-3. Confirm the buyer's answer in 3–5 words, then immediately ask the next gap.
-4. If a detail was already stated, SKIP it and ask the next unknown.
-5. Cover in this exact priority order (skip if already known):
-   a. Exact dimensions — L × W × H in mm or cm, or diameter × height
-   b. MOQ — minimum order quantity in units
-   c. Target price per unit in USD
-   d. Material grade or weight — e.g. 300 g/m², 0.8 mm steel, food-grade PP
-   e. Colorways — number of Pantone/RAL colors or print type
-   f. Packaging — units per carton, poly bag or box
-   g. Manufacturing tolerance — ±mm or %
-   h. Lead time — days from purchase order
-   i. Required certifications — CE, FDA, OEKO-TEX, RoHS, etc.
-6. After 7–9 exchanges say: "Perfect, I have everything I need to build your RFQ." then end with:
-   OPTIONS: Yes, finalize RFQ, Add one more detail
+- Read the product description carefully. Skip any spec already provided.
+- Ask ONE question per turn. Every option must include real numbers (mm, g/m², units, $, days).
+- Cover in this priority order (skip if already known):
+  a. Exact dimensions — L × W × H in mm/cm, or diameter × height
+  b. MOQ — minimum order quantity in units
+  c. Target price per unit (USD)
+  d. Material grade/weight — e.g. 300 g/m², 0.8 mm steel, food-grade PP
+  e. Colorways — number of Pantone/RAL colors or print type
+  f. Packaging — units per carton, poly bag or box
+  g. Manufacturing tolerance — ±mm
+  h. Lead time — days from purchase order
+  i. Required certifications — CE, FDA, OEKO-TEX, RoHS, etc.
+- After 7–9 exchanges say: "Perfect, I have everything I need to build your RFQ." then:
+  OPTIONS: Yes, finalize RFQ, Add one more detail
 
 CRITICAL RULES:
-- NEVER output JSON, code blocks, or markdown.
-- Keep your message to 1–2 sentences before OPTIONS.
-- You MUST end EVERY response with: OPTIONS: choice1, choice2, choice3, choice4
-- Every option MUST contain a real number, range, or unit where applicable.
-- Use realistic, product-specific values — never vague words like "small / medium / large".
+- NEVER output raw JSON or code blocks.
+- The OPTIONS: line is machine-parsed and NOT shown to the user — always include it.
+- Keep the confirmation sentence to 1 line max before the bold question.
+- Bold option names: **Name** — then dash and description.
+- Use realistic, product-specific numbers — never vague words like "small/medium/large" alone.
 
-EXAMPLES of quantified options (adapt to the actual product):
-Dimensions →    OPTIONS: 20×15×8 cm, 30×20×10 cm, 45×30×15 cm, Custom / Type below
-MOQ →           OPTIONS: 200–500 units, 500–1,000 units, 1,000–5,000 units, 5,000+ units
-Target price →  OPTIONS: Under $2/unit, $2–$5/unit, $5–$15/unit, $15–$50/unit
-Fabric weight → OPTIONS: 150 g/m², 200 g/m², 280 g/m², 350 g/m²
-Wall thickness → OPTIONS: 0.5 mm, 1.0 mm, 1.5 mm, 2.0 mm+
-Tolerance →     OPTIONS: ±0.1 mm, ±0.5 mm, ±1.0 mm, Standard (±2 mm)
-Lead time →     OPTIONS: 15–30 days, 30–45 days, 45–60 days, 60–90 days
-Colors →        OPTIONS: 1 spot color, 2–3 colors, Full CMYK, No print / Plain
-Certifications → OPTIONS: CE + RoHS, FDA food-safe, OEKO-TEX Standard 100, None required`;
+EXAMPLE (for a ceramic plate):
+Got it, high-fire stoneware it is.
+
+**What diameter and height do you need for the plate?**
+• **24 cm diameter, 2.5 cm height** – standard dinner plate, most common for retail
+• **26 cm diameter, 3 cm height** – slightly larger, popular for restaurants
+• **28 cm diameter, 3.5 cm height** – large format, premium presentation
+• **Custom dimensions** – specify in the box below
+
+💡 Diameter above 26 cm may increase kiln space requirements and unit cost by 10–15%.
+
+OPTIONS: 24 cm diameter, 26 cm diameter, 28 cm diameter, Custom / Type below`;
 
 // ─── System prompt for structured JSON extraction (NO conversational text) ───
 const JSON_SYSTEM_PROMPT = `You are a data extraction agent. Based on the conversation provided, extract all known product details and return ONLY a valid JSON object. No explanations, no text, no markdown — just the raw JSON object.
@@ -391,22 +400,17 @@ function ChooseStep({ onNext }: { onNext: (method: string) => void }) {
 // ─── Typing Indicator ─────────────────────────────────────────────────────────
 function TypingIndicator() {
   return (
-    <div className="flex items-end gap-3 mb-4">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#6c63ff] flex items-center justify-center flex-shrink-0 shadow-sm">
-        <Bot size={14} className="text-white" />
-      </div>
-      <div className="bg-white border border-[var(--border)] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-          <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-          <span className="w-2 h-2 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
-        </div>
-      </div>
+    <div className="flex items-center gap-1 py-3 mb-2">
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-bounce"
+          style={{ animationDelay: `${i * 120}ms`, animationDuration: '0.8s' }}
+        />
+      ))}
     </div>
   );
 }
-
-const MCQ_LABELS = ['A', 'B', 'C', 'D', 'E'];
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOptionClick: (opt: string) => void; isLoading: boolean }) {
@@ -420,67 +424,54 @@ function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOpti
 
   if (msg.role === 'user') {
     return (
-      <div className="flex justify-end mb-5 animate-fadeIn">
-        <div className="max-w-[72%]">
-          <div className="bg-primary text-white text-sm px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm leading-relaxed">
-            {msg.text}
-          </div>
+      <div className="flex justify-end mb-6">
+        <div className="bg-[#F0F0F2] text-[#0D0D14] text-sm px-4 py-2 rounded-2xl max-w-[70%] leading-relaxed">
+          {msg.text}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex items-start gap-3 mb-5 animate-fadeIn">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#6c63ff] flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
-        <Bot size={14} className="text-white" />
-      </div>
-      <div className="flex-1 max-w-[85%]">
-        <div className="bg-white border border-[var(--border)] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm mb-2.5">
-          {msg.isStreaming && !msg.text ? (
-            <div className="flex items-center gap-1.5 py-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }} />
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-          ) : (
-            <div className="text-sm text-[var(--foreground)] leading-relaxed prose prose-sm max-w-none prose-p:my-0.5 prose-strong:text-[var(--foreground)] prose-strong:font-semibold">
-              <ReactMarkdown>{msg.text}</ReactMarkdown>
-            </div>
-          )}
+    <div className="mb-7">
+      {/* AI message body — plain prose, no bubble */}
+      {msg.isStreaming && !msg.text ? (
+        <TypingIndicator />
+      ) : (
+        <div className="text-[15px] text-[#0D0D14] leading-[1.7] prose prose-sm max-w-none
+          prose-p:my-1.5 prose-p:text-[15px] prose-p:text-[#0D0D14]
+          prose-strong:font-semibold prose-strong:text-[#0D0D14]
+          prose-ul:my-2 prose-ul:space-y-1.5 prose-li:text-[15px] prose-li:text-[#0D0D14] prose-li:my-0
+          [&_li]:list-none [&_ul]:pl-0">
+          <ReactMarkdown>{msg.text}</ReactMarkdown>
         </div>
+      )}
 
-        {/* MCQ option cards */}
-        {!msg.isStreaming && msg.options && msg.options.length > 0 && (
-          <div className="space-y-2">
-            {msg.options.map((opt, i) => {
-              const isSelected = selected === opt;
-              const isOther = opt.toLowerCase().startsWith('other');
-              return (
-                <button
-                  key={opt}
-                  onClick={() => handleSelect(opt)}
-                  disabled={isLoading || !!selected}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-sm text-left transition-all duration-150 disabled:cursor-not-allowed group
-                    ${isSelected
-                      ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
-                      : selected
-                        ? 'bg-white border-[var(--border)] text-[var(--muted-foreground)] opacity-50'
-                        : 'bg-white border-[var(--border)] hover:border-primary hover:bg-[var(--secondary)] text-[var(--foreground)]'
-                    }`}
-                >
-                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors duration-150
-                    ${isSelected ? 'bg-white/20 text-white' : 'bg-[var(--secondary)] text-primary group-hover:bg-primary group-hover:text-white'}`}>
-                    {isOther ? '✎' : MCQ_LABELS[i] || '·'}
-                  </span>
-                  <span className="flex-1 font-medium">{opt}</span>
-                  {isSelected && <CheckCircle size={15} className="flex-shrink-0 text-white" />}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Quick-reply chips — only on last non-streaming message */}
+      {!msg.isStreaming && msg.options && msg.options.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-4">
+          {msg.options.map((opt) => {
+            const isSelected = selected === opt;
+            return (
+              <button
+                key={opt}
+                onClick={() => handleSelect(opt)}
+                disabled={isLoading || !!selected}
+                className={`px-3.5 py-1.5 rounded-full border text-sm font-medium transition-all duration-150 disabled:cursor-not-allowed
+                  ${isSelected
+                    ? 'bg-[#0D0D14] border-[#0D0D14] text-white'
+                    : selected
+                      ? 'border-gray-200 text-gray-300 bg-white'
+                      : 'border-gray-300 text-[#0D0D14] bg-white hover:border-[#0D0D14] hover:bg-[#F5F5F8]'
+                  }`}
+              >
+                {isSelected && <CheckCircle size={12} className="inline mr-1.5 -mt-0.5" />}
+                {opt}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -493,174 +484,130 @@ function RFQPanel({ rfq, rfqTitle, finalized, isLoading, onFinalize }: {
   isLoading: boolean;
   onFinalize: () => void;
 }) {
-  const filledSpecs = rfq.specifications.filter((s) => !s.pending);
-  const pendingSpecs = rfq.specifications.filter((s) => s.pending);
-  const filledNotes = rfq.manufacturingNotes.filter((n) => !n.pending);
-  const pendingNotes = rfq.manufacturingNotes.filter((n) => n.pending);
-  const totalFields = rfq.specifications.length + rfq.manufacturingNotes.length + 5;
-  const filledFields = filledSpecs.length + filledNotes.length +
+  const allSpecs = rfq.specifications;
+  const allNotes = rfq.manufacturingNotes;
+  const totalFields = allSpecs.length + allNotes.length + 5;
+  const filledFields =
+    allSpecs.filter((s) => !s.pending).length +
+    allNotes.filter((n) => !n.pending).length +
     (rfq.productName ? 1 : 0) + (rfq.category ? 1 : 0) +
     (rfq.intendedUse ? 1 : 0) + (rfq.description ? 1 : 0) + (rfq.moq ? 1 : 0);
   const completionPct = Math.round((filledFields / totalFields) * 100);
 
+  const hasBasicInfo = rfq.productName || rfq.category || rfq.intendedUse || rfq.description || rfq.moq;
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white">
       {/* Panel header */}
-      <div className="px-6 py-4 border-b border-[var(--border)] bg-gradient-to-r from-primary/5 to-transparent">
-        <div className="flex items-center gap-2 mb-1">
-          <Sparkles size={14} className="text-primary" />
-          <span className="text-xs font-semibold text-primary uppercase tracking-wider">RFQ Draft</span>
-        </div>
-        <h2 className="text-base font-bold text-[var(--foreground)] leading-snug line-clamp-2">{rfqTitle || 'New Product RFQ'}</h2>
-        {/* Progress bar */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-[var(--muted-foreground)]">Completion</span>
-            <span className="text-xs font-semibold text-primary">{completionPct}%</span>
-          </div>
-          <div className="h-1.5 bg-[var(--muted)] rounded-full overflow-hidden">
+      <div className="px-7 pt-7 pb-5 border-b border-gray-100">
+        <h2 className="text-lg font-bold text-[#0D0D14] leading-snug mb-1">
+          {rfqTitle || 'New Product RFQ'}
+        </h2>
+        <div className="flex items-center gap-3 mt-3">
+          <div className="flex-1 h-1 bg-gray-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-primary to-[#6c63ff] rounded-full transition-all duration-700"
+              className="h-full bg-[#0D0D14] rounded-full transition-all duration-700"
               style={{ width: `${completionPct}%` }}
             />
           </div>
+          <span className="text-xs font-semibold text-[#0D0D14] tabular-nums">{completionPct}%</span>
         </div>
       </div>
 
       {/* Panel body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+      <div className="flex-1 overflow-y-auto px-7 py-6 space-y-7 text-sm">
+
         {/* Basic info */}
-        {(rfq.productName || rfq.category || rfq.intendedUse || rfq.description || rfq.moq) ? (
-          <div className="space-y-2.5">
-            {rfq.productName && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)] min-w-[110px] flex-shrink-0">Product</span>
-                <span className="text-[var(--foreground)] font-medium">{rfq.productName}</span>
-              </div>
-            )}
-            {rfq.category && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)] min-w-[110px] flex-shrink-0">Category</span>
-                <span className="text-[var(--foreground)] font-medium">{rfq.category}</span>
-              </div>
-            )}
-            {rfq.intendedUse && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)] min-w-[110px] flex-shrink-0">Intended Use</span>
-                <span className="text-[var(--foreground)]">{rfq.intendedUse}</span>
-              </div>
-            )}
-            {rfq.description && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)] min-w-[110px] flex-shrink-0">Description</span>
-                <span className="text-[var(--foreground)]">{rfq.description}</span>
-              </div>
-            )}
-            {rfq.moq && (
-              <div className="flex gap-2 text-sm">
-                <span className="text-[var(--muted-foreground)] min-w-[110px] flex-shrink-0">MOQ</span>
-                <span className="text-[var(--foreground)] font-medium">{rfq.moq}</span>
-              </div>
-            )}
+        {hasBasicInfo ? (
+          <div className="space-y-2">
+            {rfq.productName && <InfoRow label="Product Name" value={rfq.productName} bold />}
+            {rfq.category && <InfoRow label="Category" value={rfq.category} />}
+            {rfq.intendedUse && <InfoRow label="Intended Use / Function" value={rfq.intendedUse} />}
+            {rfq.description && <InfoRow label="Product Description" value={rfq.description} />}
+            {rfq.moq && <InfoRow label="MOQ" value={rfq.moq} />}
           </div>
         ) : (
-          <div className="text-center py-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-              <Sparkles size={18} className="text-primary" />
-            </div>
-            <p className="text-xs text-[var(--muted-foreground)] leading-relaxed">
-              RFQ details will appear here as the conversation progresses…
-            </p>
-          </div>
+          <p className="text-sm text-gray-400 italic">
+            Product details will appear here as the conversation progresses…
+          </p>
         )}
 
         {/* Specifications */}
-        {(filledSpecs.length > 0 || pendingSpecs.length > 0) && (
-          <div>
-            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <span className="w-1 h-3 bg-primary rounded-full inline-block" />
-              Specifications
-            </h3>
-            <div className="space-y-1.5">
-              {filledSpecs.map((spec, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 flex-shrink-0" />
-                  <span className="text-[var(--muted-foreground)] min-w-[120px] flex-shrink-0">{spec.label}</span>
-                  <span className="text-[var(--foreground)] font-medium">{spec.value}</span>
-                </div>
-              ))}
-              {pendingSpecs.map((spec, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs opacity-50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted-foreground)] mt-1.5 flex-shrink-0" />
-                  <span className="text-[var(--muted-foreground)] min-w-[120px] flex-shrink-0">{spec.label}</span>
-                  <span className="text-[var(--muted-foreground)] italic">Pending</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div>
+          <p className="text-xs font-bold text-[#0D0D14] uppercase tracking-widest mb-3">Specifications:</p>
+          <ul className="space-y-2">
+            {allSpecs.map((spec, i) => (
+              <li key={i} className="flex items-baseline gap-1.5 text-sm leading-snug">
+                <span className="text-gray-400 flex-shrink-0">•</span>
+                {spec.pending ? (
+                  <span className="text-gray-400 italic">{spec.label}: (Pending)</span>
+                ) : (
+                  <span className="text-[#0D0D14]"><span className="font-semibold">{spec.label}:</span> {spec.value}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {/* Manufacturing Notes */}
-        {(filledNotes.length > 0 || pendingNotes.length > 0) && (
-          <div>
-            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <span className="w-1 h-3 bg-[#6c63ff] rounded-full inline-block" />
-              Manufacturing Notes
-            </h3>
-            <div className="space-y-1.5">
-              {filledNotes.map((note, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5 flex-shrink-0" />
-                  <span className="text-[var(--muted-foreground)] min-w-[120px] flex-shrink-0">{note.label}</span>
-                  <span className="text-[var(--foreground)] font-medium">{note.value}</span>
-                </div>
-              ))}
-              {pendingNotes.map((note, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs opacity-50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--muted-foreground)] mt-1.5 flex-shrink-0" />
-                  <span className="text-[var(--muted-foreground)] min-w-[120px] flex-shrink-0">{note.label}</span>
-                  <span className="text-[var(--muted-foreground)] italic">Pending</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div>
+          <p className="text-xs font-bold text-[#0D0D14] uppercase tracking-widest mb-3">Manufacturing Notes:</p>
+          <ul className="space-y-2">
+            {allNotes.map((note, i) => (
+              <li key={i} className="flex items-baseline gap-1.5 text-sm leading-snug">
+                <span className="text-gray-400 flex-shrink-0">•</span>
+                {note.pending ? (
+                  <span className="text-gray-400 italic">{note.label}: (Pending)</span>
+                ) : (
+                  <span className="text-[#0D0D14]"><span className="font-semibold">{note.label}:</span> {note.value}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {/* Ambiguities */}
         {rfq.ambiguities.length > 0 && (
           <div>
-            <h3 className="text-xs font-bold text-[var(--foreground)] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-              <span className="w-1 h-3 bg-amber-400 rounded-full inline-block" />
-              Pending Clarifications
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
+            <p className="text-xs font-bold text-[#0D0D14] uppercase tracking-widest mb-3">Ambiguities / Pending Clarifications:</p>
+            <ul className="space-y-1.5">
               {rfq.ambiguities.map((item, i) => (
-                <span key={i} className="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-xs rounded-full">
+                <li key={i} className="flex items-baseline gap-1.5 text-sm text-gray-500">
+                  <span className="flex-shrink-0">•</span>
                   {item}
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
       </div>
 
       {/* Finalize button */}
-      <div className="px-6 py-4 border-t border-[var(--border)] bg-white">
+      <div className="px-7 py-5 border-t border-gray-100">
         <button
           onClick={onFinalize}
           disabled={finalized || isLoading || (!rfq.productName && !rfqTitle)}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-[#2e29c4] active:scale-[0.98] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-primary/20"
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#0D0D14] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a26] active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {finalized ? (
-            <><CheckCircle size={16} /> RFQ Finalized!</>
+            <><CheckCircle size={15} /> RFQ Finalized!</>
           ) : (
-            <><CheckCircle size={16} /> Finalize RFQ &amp; Add to Products</>
+            <><ChevronRight size={15} /> Finalize &amp; Add to Products</>
           )}
         </button>
-        <p className="text-xs text-[var(--muted-foreground)] text-center mt-2">
-          This will add the product to your sourcing list
+        <p className="text-xs text-gray-400 text-center mt-2">
+          Adds product to your sourcing list
         </p>
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <div className="text-sm leading-snug">
+      <span className="font-semibold text-[#0D0D14]">{label}:</span>{' '}
+      <span className={bold ? 'text-[#0D0D14] font-medium' : 'text-gray-600'}>{value}</span>
     </div>
   );
 }
@@ -904,69 +851,62 @@ function BuilderStep({ productText, productName }: { productText: string; produc
   const isDisabled = isStreaming || isProcessing;
 
   return (
-    <div className="relative min-h-screen bg-[#f8f8fc] flex flex-col">
-      <Toaster position="top-right" toastOptions={{ style: { fontSize: '13px', borderRadius: '10px' } }} />
+    <div className="relative h-screen bg-white flex flex-col overflow-hidden">
+      <Toaster position="top-right" toastOptions={{ style: { fontSize: '13px', borderRadius: '10px', fontFamily: 'inherit' } }} />
 
-      {/* Top bar */}
-      <div className="flex items-center px-6 py-3.5 border-b border-[var(--border)] bg-white z-10 shadow-sm">
-        <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-primary transition-colors mr-6">
-          <span className="text-base">‹</span> Back to Home
+      {/* ── Top bar ── */}
+      <div className="flex items-center gap-4 px-6 py-3 border-b border-gray-100 bg-white z-10 flex-shrink-0">
+        <Link
+          href="/products-list"
+          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0D0D14] transition-colors whitespace-nowrap"
+        >
+          <span className="text-base leading-none">‹</span> Back to Home
         </Link>
-        <div className="flex-1 flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-xs text-[var(--muted-foreground)]">AI RFQ Agent · Active</span>
+        <div className="flex-1 min-w-0">
+          <input
+            value={rfqTitle}
+            onChange={(e) => setRfqTitle(e.target.value)}
+            className="w-full text-sm font-semibold text-[#0D0D14] bg-transparent outline-none border-b border-primary pb-0.5 truncate placeholder:text-gray-300"
+            placeholder="Product RFQ title…"
+          />
         </div>
         <button
           onClick={() => setPanelOpen(!panelOpen)}
-          className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-primary transition-colors px-3 py-1.5 rounded-lg hover:bg-[var(--muted)] border border-[var(--border)]"
+          className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#0D0D14] hover:bg-gray-50 transition-colors"
+          title={panelOpen ? 'Hide RFQ panel' : 'Show RFQ panel'}
         >
-          <Eye size={13} />
-          {panelOpen ? 'Hide RFQ' : 'Show RFQ'}
+          {panelOpen ? <EyeOff size={17} /> : <Eye size={17} />}
         </button>
       </div>
 
-      <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 57px)' }}>
-        {/* Left: Chat panel */}
-        <div className={`flex flex-col transition-all duration-300 ${panelOpen ? 'w-[52%]' : 'w-full'}`}>
-          {/* Chat header */}
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--border)] bg-white">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#6c63ff] flex items-center justify-center shadow-sm">
-              <Bot size={15} className="text-white" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-[var(--foreground)]">Proquoment AI</p>
-              <p className="text-xs text-[var(--muted-foreground)]">RFQ Specialist</p>
-            </div>
-            <div className="ml-auto">
-              <input
-                value={rfqTitle}
-                onChange={(e) => setRfqTitle(e.target.value)}
-                className="text-xs font-medium text-primary border-b border-primary/30 bg-transparent outline-none pb-0.5 max-w-[180px] text-right"
-                placeholder="RFQ Title"
-              />
-            </div>
-          </div>
+      {/* ── Body ── */}
+      <div className="flex flex-1 overflow-hidden">
+
+        {/* ── Left: Chat ── */}
+        <div className={`flex flex-col transition-all duration-300 ${panelOpen ? 'w-[56%]' : 'w-full'}`}>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-5 py-5">
-            {messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                msg={msg}
-                onOptionClick={handleSend}
-                isLoading={isDisabled}
-              />
-            ))}
-            {isDisabled && messages[messages.length - 1]?.role === 'user' && (
-              <TypingIndicator />
-            )}
-            <div ref={messagesEndRef} />
+          <div className="flex-1 overflow-y-auto">
+            <div className="max-w-2xl mx-auto px-8 pt-8 pb-4">
+              {messages.map((msg) => (
+                <MessageBubble
+                  key={msg.id}
+                  msg={msg}
+                  onOptionClick={handleSend}
+                  isLoading={isDisabled}
+                />
+              ))}
+              {isDisabled && messages[messages.length - 1]?.role === 'user' && (
+                <TypingIndicator />
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
 
-          {/* Input area */}
-          <div className="px-4 py-4 border-t border-[var(--border)] bg-white">
-            <div className="flex items-end gap-2">
-              <div className="flex-1 border border-[var(--border)] rounded-2xl bg-[#f8f8fc] focus-within:border-primary/50 focus-within:bg-white transition-all duration-150 overflow-hidden">
+          {/* ── Input area ── */}
+          <div className="flex-shrink-0 border-t border-gray-100 bg-white">
+            <div className="max-w-2xl mx-auto px-8 py-4">
+              <div className="border border-gray-200 rounded-2xl bg-white focus-within:border-gray-400 transition-colors duration-150 overflow-hidden">
                 <textarea
                   ref={inputRef}
                   value={inputValue}
@@ -977,32 +917,33 @@ function BuilderStep({ productText, productName }: { productText: string; produc
                       handleSend(inputValue);
                     }
                   }}
-                  placeholder="Type your answer… (Enter to send, Shift+Enter for new line)"
+                  placeholder="Describe what you want to build"
                   rows={2}
                   disabled={isDisabled}
-                  className="w-full px-4 pt-3 pb-1 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none resize-none bg-transparent disabled:opacity-60 leading-relaxed"
+                  className="w-full px-4 pt-3.5 pb-1 text-sm text-[#0D0D14] placeholder:text-gray-300 outline-none resize-none bg-transparent disabled:opacity-50 leading-relaxed"
                 />
-                <div className="flex items-center justify-between px-4 pb-2.5">
-                  <button className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)] hover:text-primary transition-colors">
-                    <Plus size={12} /> Attach file
+                <div className="flex items-center justify-between px-4 pb-3 pt-1">
+                  <button className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#0D0D14] transition-colors">
+                    <Paperclip size={12} /> Add references
                   </button>
-                  <span className="text-xs text-[var(--muted-foreground)]/60">Shift+Enter for new line</span>
+                  <button
+                    onClick={() => handleSend(inputValue)}
+                    disabled={!inputValue.trim() || isDisabled}
+                    className="w-7 h-7 rounded-full bg-[#0D0D14] text-white flex items-center justify-center transition-all duration-150 disabled:opacity-25 disabled:cursor-not-allowed hover:bg-[#1a1a26] active:scale-95 flex-shrink-0"
+                  >
+                    {isDisabled
+                      ? <Loader2 size={13} className="animate-spin" />
+                      : <ArrowUp size={13} />}
+                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => handleSend(inputValue)}
-                disabled={!inputValue.trim() || isDisabled}
-                className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#2e29c4] active:scale-95 shadow-sm shadow-primary/30 flex-shrink-0 mb-1"
-              >
-                {isDisabled ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Right: RFQ Summary panel */}
+        {/* ── Right: RFQ panel ── */}
         {panelOpen && (
-          <div className="flex-1 overflow-hidden border-l border-[var(--border)] bg-white flex flex-col">
+          <div className="flex-1 overflow-hidden border-l border-gray-100 flex flex-col">
             <RFQPanel
               rfq={rfq}
               rfqTitle={rfqTitle}
@@ -1013,8 +954,6 @@ function BuilderStep({ productText, productName }: { productText: string; produc
           </div>
         )}
       </div>
-
-      <ChatButton />
     </div>
   );
 }
