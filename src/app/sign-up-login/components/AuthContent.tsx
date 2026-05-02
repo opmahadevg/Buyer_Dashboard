@@ -132,11 +132,12 @@ export default function AuthContent() {
       {/* Right form panel */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12 bg-white">
         <div className="w-full max-w-md">
-          <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">P</span>
+          {/* Logo — visible on all screen sizes at top of form */}
+          <div className="flex items-center gap-2.5 mb-8">
+            <div className="w-9 h-9 rounded-full bg-[#1e1b6e] flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <img src="/proquoment-logo.png" alt="Proquoment" className="w-6 h-6 object-contain" />
             </div>
-            <span className="font-bold text-lg text-[var(--foreground)]">Proquoment</span>
+            <span className="font-bold text-lg text-[var(--foreground)] tracking-tight">Proquoment</span>
           </div>
 
           {/* ── FORGOT PASSWORD ── */}
