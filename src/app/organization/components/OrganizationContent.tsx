@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, MapPin, Phone, Mail, Globe, Users, FileText, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { getStoredOrg, onOrgUpdated, StoredOrg } from '@/lib/orgStore';
+import { getStoredOrg, onOrgUpdated, StoredOrg, DEFAULT_ORG } from '@/lib/orgStore';
 
 interface InfoRowProps {
   icon: React.ReactNode;
@@ -39,7 +39,7 @@ function InfoRow({ icon, label, value, link }: InfoRowProps) {
 }
 
 export default function OrganizationContent() {
-  const [org, setOrg] = useState<StoredOrg>(getStoredOrg());
+  const [org, setOrg] = useState<StoredOrg>(DEFAULT_ORG);
 
   useEffect(() => {
     // Re-read whenever Account saves

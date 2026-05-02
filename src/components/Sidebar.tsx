@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, Building2, Settings, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { productService, DbProduct, userProfileService } from '@/lib/services/dbService';
-import { getStoredOrg, onOrgUpdated } from '@/lib/orgStore';
+import { getStoredOrg, onOrgUpdated, DEFAULT_ORG } from '@/lib/orgStore';
 
 interface SidebarProps {
   open: boolean;
@@ -16,14 +16,14 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const [productsExpanded, setProductsExpanded] = useState(true);
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [userEmail, setUserEmail] = useState('');
-  const [orgName, setOrgName] = useState(() => getStoredOrg().name);
+  const [orgName, setOrgName] = useState(DEFAULT_ORG.name);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
 
-  // Keep org name in sync whenever Account saves
+  // Hydrate from localStorage after mount, then keep in sync on save
   useEffect(() => {
     setOrgName(getStoredOrg().name);
     const unsubscribe = onOrgUpdated(() => {
