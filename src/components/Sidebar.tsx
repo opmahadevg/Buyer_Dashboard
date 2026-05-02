@@ -1,10 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Building2, Settings, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, Package, Building2, Settings, ChevronDown, ChevronLeft, ChevronRight, Sparkles, LogOut } from 'lucide-react';
 import { productService, DbProduct, userProfileService } from '@/lib/services/dbService';
 import { getStoredOrg, onOrgUpdated, DEFAULT_ORG } from '@/lib/orgStore';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
   open: boolean;
@@ -13,10 +14,13 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onToggle }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { signOut, user } = useAuth();
   const [productsExpanded, setProductsExpanded] = useState(true);
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [userEmail, setUserEmail] = useState('');
   const [orgName, setOrgName] = useState(DEFAULT_ORG.name);
+  const [signingOut, setSigningOut] = useState(false);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -33,20 +37,31 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   }, []);
 
   useEffect(() => {
+    if (user?.email) setUserEmail(user.email);
+  }, [user]);
+
+  useEffect(() => {
     const load = async () => {
       try {
-        const [prods, profile] = await Promise.all([
-          productService.getAll(),
-          userProfileService.get(),
-        ]);
+        const prods = await productService.getAll();
         setProducts(prods);
-        if (profile?.email) setUserEmail(profile.email);
-      } catch (err) {
+      } catch {
         // Silently fail — sidebar still renders
       }
     };
     load();
   }, []);
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.push('/sign-up-login');
+      router.refresh();
+    } catch {
+      setSigningOut(false);
+    }
+  };
 
   const allProducts = products.map((p) => ({
     id: p.id,
@@ -237,8 +252,8 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
         </div>
       </nav>
 
-      {/* Bottom: Toggle + User */}
-      <div className="border-t border-[var(--border)] px-2 py-3 space-y-2 overflow-hidden">
+      {/* Bottom: Toggle + User + Sign Out */}
+      <div className="border-t border-[var(--border)] px-2 py-3 space-y-1 overflow-hidden">
         <button
           onClick={onToggle}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] transition-all duration-150 w-full group relative"
@@ -261,25 +276,43 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
           )}
         </button>
 
-        <Link
-          href="/sign-up-login"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--muted)] transition-colors duration-150 cursor-pointer group relative"
-        >
+        {/* User row */}
+        <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg group relative">
           <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-            {userEmail ? userEmail.charAt(0).toUpperCase() : 'H'}
+            {userEmail ? userEmail.charAt(0).toUpperCase() : '?'}
           </div>
           <span
-            className="text-xs text-[var(--muted-foreground)] truncate whitespace-nowrap overflow-hidden transition-all duration-200"
-            style={{ maxWidth: open ? '160px' : '0px', opacity: open ? 1 : 0 }}
+            className="text-xs text-[var(--muted-foreground)] truncate whitespace-nowrap overflow-hidden transition-all duration-200 flex-1"
+            style={{ maxWidth: open ? '120px' : '0px', opacity: open ? 1 : 0 }}
           >
             {displayEmail}
           </span>
           {!open && (
             <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--foreground)] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
-              {userEmail || 'honeyimtb2000@gmail.com'}
+              {userEmail || 'Not signed in'}
             </div>
           )}
-        </Link>
+        </div>
+
+        {/* Sign Out button */}
+        <button
+          onClick={handleSignOut}
+          disabled={signingOut}
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-[var(--muted-foreground)] hover:bg-red-50 hover:text-red-600 transition-all duration-150 w-full group relative disabled:opacity-50"
+        >
+          <LogOut size={16} className="flex-shrink-0" />
+          <span
+            className="whitespace-nowrap overflow-hidden transition-all duration-200"
+            style={{ maxWidth: open ? '160px' : '0px', opacity: open ? 1 : 0 }}
+          >
+            {signingOut ? 'Signing out…' : 'Sign out'}
+          </span>
+          {!open && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--foreground)] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
+              Sign out
+            </div>
+          )}
+        </button>
       </div>
     </aside>
   );

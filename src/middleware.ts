@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const PUBLIC_PATHS = ['/sign-up-login', '/auth/callback'];
+
 function getProjectRef(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   return url.match(/https:\/\/([^.]+)\./)?.[1] ?? '';
@@ -16,6 +18,7 @@ function injectTokenFromHeader(request: NextRequest): void {
 
 export async function middleware(request: NextRequest) {
   injectTokenFromHeader(request);
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -36,7 +39,20 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { pathname } = request.nextUrl;
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+
+  if (!user && !isPublic) {
+    const loginUrl = new URL('/sign-up-login', request.url);
+    if (pathname !== '/') loginUrl.searchParams.set('next', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (user && pathname === '/sign-up-login') {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 
   return supabaseResponse;
 }

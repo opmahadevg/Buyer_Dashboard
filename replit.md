@@ -49,8 +49,16 @@ A full-featured procurement sourcing dashboard built with Next.js 15, TypeScript
 - **Build**: `npm run build`
 - **Start**: `npm run start`
 
+## Auth Flow
+- **Route protection**: `src/middleware.ts` checks Supabase session on every request. Unauthenticated users are redirected to `/sign-up-login` (with `?next=` param to return after login). Authenticated users visiting `/sign-up-login` are redirected to `/`.
+- **Sign in / Sign up**: `/sign-up-login` → `AuthContent.tsx` — email+password forms via `useAuth()` context. Supports login, signup, and forgot-password modes.
+- **Forgot password**: Calls `supabase.auth.resetPasswordForEmail()`, sends reset link email, shows confirmation message.
+- **Sign out**: Sidebar bottom has a "Sign out" button (LogOut icon) that calls `signOut()` from AuthContext and redirects to `/sign-up-login`.
+- **Auth callback**: `/auth/callback` — exchanges Supabase code for session, redirects to `/` (or `?next=` path).
+- **AuthContext**: `src/contexts/AuthContext.tsx` — provides `user`, `session`, `loading`, `signIn`, `signUp`, `signOut`.
+- After sign-in, all data services (`productService`, `activityService`, etc.) use `supabase.auth.getUser()` to load real Supabase data.
+
 ## Notes
-- App works with static fallback data even without Supabase auth
-- AI features require appropriate API keys
+- AI features require GROQ_API_KEY (llama-3.3-70b-versatile via Groq)
 - `next.config.mjs` imports image hosts from `image-hosts.config.mjs`
 - `typescript.ignoreBuildErrors: true` and `eslint.ignoreDuringBuilds: true` for fast iteration
