@@ -305,7 +305,7 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
       {/* Right — interactive globe */}
       <div className="flex-1 flex flex-col items-center justify-center pr-8 pl-4 py-12">
         <p className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest mb-4">
-          12,000+ verified manufacturers
+          Verified manufacturers
         </p>
         <Globe
           markers={SUPPLIER_MARKERS}
