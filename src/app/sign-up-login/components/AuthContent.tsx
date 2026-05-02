@@ -229,6 +229,37 @@ export default function AuthContent() {
                   <button type="button" onClick={() => switchMode('signup')} className="text-primary font-semibold hover:underline">Sign up</button>
                 </p>
               </form>
+
+              {/* Demo accounts */}
+              <div className="mt-6">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex-1 h-px bg-[var(--border)]" />
+                  <span className="text-xs text-[var(--muted-foreground)] font-medium">Demo accounts</span>
+                  <div className="flex-1 h-px bg-[var(--border)]" />
+                </div>
+                <div className="space-y-2">
+                  {[
+                    { label: 'Demo User', email: 'demo@proquoment.com', password: 'Demo@1234' },
+                    { label: 'Buyer', email: 'buyer@proquoment.com', password: 'Buyer@1234' },
+                  ].map((account) => (
+                    <button
+                      key={account.email}
+                      type="button"
+                      onClick={() => {
+                        loginForm.setValue('email', account.email);
+                        loginForm.setValue('password', account.password);
+                      }}
+                      className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--muted)]/40 hover:bg-[var(--muted)] hover:border-primary/40 transition-all group"
+                    >
+                      <div className="text-left">
+                        <p className="text-xs font-semibold text-[var(--foreground)]">{account.label}</p>
+                        <p className="text-xs text-[var(--muted-foreground)]">{account.email}</p>
+                      </div>
+                      <span className="text-xs text-primary font-medium group-hover:underline">Use →</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </>
           )}
 
