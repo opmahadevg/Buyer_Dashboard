@@ -33,22 +33,26 @@ interface RFQData {
 }
 
 // ─── System prompt for conversational text (NO JSON) ─────────────────────────
-const CHAT_SYSTEM_PROMPT = `You are an expert procurement RFQ agent for Proquoment, a B2B sourcing platform. Your role is to help buyers build a complete RFQ through natural conversation.
+const CHAT_SYSTEM_PROMPT = `You are an expert procurement RFQ agent for Proquoment, a B2B sourcing platform. Your role is to help buyers build a complete RFQ by asking simple, focused multiple-choice questions one at a time.
 
 Your behavior:
-1. Parse the buyer's product description and acknowledge what you understood.
-2. Ask ONE focused follow-up question at a time to fill in missing details.
-3. After each answer, briefly acknowledge it, then ask the next most important missing detail.
-4. Keep questions concise and conversational.
-5. When you want to offer choices, list them naturally in your message (e.g., "Would you prefer A, B, or C?").
-6. After 5-8 exchanges, summarize what you have and ask if they're ready to finalize.
+1. Acknowledge the product description briefly (1 sentence max).
+2. Ask ONE short, clear question about the most important missing detail.
+3. ALWAYS provide 3–4 short answer choices for every question. Keep choices under 5 words each.
+4. After the buyer answers, briefly confirm (3–5 words), then ask the next question.
+5. Cover these topics in order: material/finish → dimensions/size → quantity/MOQ → packaging → certifications → branding → lead time.
+6. After 6–8 exchanges, say "Great, I have enough to build your RFQ!" and offer: OPTIONS: Yes, finalize my RFQ, Add more details
 
 CRITICAL RULES:
-- Respond ONLY with natural conversational text. 
-- NEVER output JSON, code blocks, or structured data of any kind.
+- Respond ONLY with natural conversational text.
+- NEVER output JSON, code blocks, or structured data.
 - NEVER use backticks or markdown code fences.
-- Keep responses concise (2-4 sentences max).
-- If you want to offer quick-reply options, end your message with a line starting with "OPTIONS:" followed by comma-separated choices (e.g., "OPTIONS: Brake pads, Oil filter, Headlight assembly").`;
+- Keep your message to 1–2 sentences before the OPTIONS line.
+- You MUST end EVERY response with a line: OPTIONS: choice1, choice2, choice3 (and optionally: Other / Type below)
+- Make choices specific and relevant to the product — not generic.
+- Example format:
+  What material should the body be made from?
+  OPTIONS: Stainless steel, Aluminium, Plastic (ABS), Other / Type below`;
 
 // ─── System prompt for structured JSON extraction (NO conversational text) ───
 const JSON_SYSTEM_PROMPT = `You are a data extraction agent. Based on the conversation provided, extract all known product details and return ONLY a valid JSON object. No explanations, no text, no markdown — just the raw JSON object.
@@ -183,6 +187,18 @@ function WorldMapDots() {
   );
 }
 
+// ─── Category quick-chips ─────────────────────────────────────────────────────
+const CATEGORY_CHIPS = [
+  { label: '👕 Apparel & Textiles', value: 'Apparel or textile product' },
+  { label: '🪑 Furniture', value: 'Furniture product' },
+  { label: '🍶 Ceramics & Homeware', value: 'Ceramic or homeware product' },
+  { label: '⚙️ Industrial Parts', value: 'Industrial or mechanical part' },
+  { label: '📦 Packaging', value: 'Packaging material or box' },
+  { label: '💄 Beauty & Personal Care', value: 'Beauty or personal care product' },
+  { label: '🔌 Electronics', value: 'Electronic component or device' },
+  { label: '🧴 Food & Beverage', value: 'Food or beverage product' },
+];
+
 // ─── Step 1: Intro ────────────────────────────────────────────────────────────
 function IntroStep({ onNext }: { onNext: (product: string) => void }) {
   const [value, setValue] = useState('');
@@ -199,19 +215,34 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
       <div className="absolute right-[5%] top-[42%] pointer-events-none"><CrescentDots size={180} rotate={-5} opacity={0.8} /></div>
 
       <div className="flex flex-col justify-center min-h-screen px-16 max-w-3xl">
-        <h1 className="text-4xl font-bold text-[var(--foreground)] mb-8 leading-tight">
+        <h1 className="text-4xl font-bold text-[var(--foreground)] mb-3 leading-tight">
           What product are we sourcing today?
         </h1>
-        <div className="bg-white border border-[var(--border)] rounded-2xl shadow-sm p-6 mb-4">
+        <p className="text-sm text-[var(--muted-foreground)] mb-6">Pick a category or describe your product below.</p>
+
+        {/* Category chips */}
+        <div className="flex flex-wrap gap-2 mb-5">
+          {CATEGORY_CHIPS.map((chip) => (
+            <button
+              key={chip.value}
+              onClick={() => setValue((prev) => prev ? prev : chip.value)}
+              className="px-3.5 py-2 text-sm border border-[var(--border)] rounded-full hover:border-primary hover:bg-[var(--secondary)] hover:text-primary transition-all duration-150 text-[var(--foreground)] bg-white"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="bg-white border border-[var(--border)] rounded-2xl shadow-sm p-6 mb-4 focus-within:border-primary/50 transition-colors">
           <textarea
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Ceramic plate, 26 cm diameter, high-fire stoneware, glossy white food-safe glaze with cobalt blue rim, kiln-fired center logo. 2000 units."
-            className="w-full h-36 resize-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none bg-transparent leading-relaxed"
+            placeholder="e.g. Ceramic plate, 26 cm diameter, high-fire stoneware, glossy white food-safe glaze with cobalt blue rim. 2000 units."
+            className="w-full h-28 resize-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none bg-transparent leading-relaxed"
           />
         </div>
-        <p className="text-sm text-[var(--muted-foreground)] italic mb-8">
-          More detail helps us match you with the right manufacturers.
+        <p className="text-xs text-[var(--muted-foreground)] italic mb-7">
+          More detail = better manufacturer matches. Don't worry — the AI will ask follow-up questions.
         </p>
         <button
           onClick={() => value.trim() && onNext(value.trim())}
@@ -356,11 +387,21 @@ function TypingIndicator() {
   );
 }
 
+const MCQ_LABELS = ['A', 'B', 'C', 'D', 'E'];
+
 // ─── Message Bubble ───────────────────────────────────────────────────────────
 function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOptionClick: (opt: string) => void; isLoading: boolean }) {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  const handleSelect = (opt: string) => {
+    if (isLoading || selected) return;
+    setSelected(opt);
+    onOptionClick(opt);
+  };
+
   if (msg.role === 'user') {
     return (
-      <div className="flex justify-end mb-4 animate-fadeIn">
+      <div className="flex justify-end mb-5 animate-fadeIn">
         <div className="max-w-[72%]">
           <div className="bg-primary text-white text-sm px-4 py-3 rounded-2xl rounded-tr-sm shadow-sm leading-relaxed">
             {msg.text}
@@ -371,12 +412,12 @@ function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOpti
   }
 
   return (
-    <div className="flex items-end gap-3 mb-4 animate-fadeIn">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#6c63ff] flex items-center justify-center flex-shrink-0 shadow-sm self-start mt-0.5">
+    <div className="flex items-start gap-3 mb-5 animate-fadeIn">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#6c63ff] flex items-center justify-center flex-shrink-0 shadow-sm mt-0.5">
         <Bot size={14} className="text-white" />
       </div>
-      <div className="flex-1 max-w-[80%]">
-        <div className="bg-white border border-[var(--border)] rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
+      <div className="flex-1 max-w-[85%]">
+        <div className="bg-white border border-[var(--border)] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm mb-2.5">
           {msg.isStreaming && !msg.text ? (
             <div className="flex items-center gap-1.5 py-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -384,23 +425,40 @@ function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOpti
               <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }} />
             </div>
           ) : (
-            <div className="text-sm text-[var(--foreground)] leading-relaxed prose prose-sm max-w-none prose-p:my-0.5 prose-ul:my-1 prose-li:my-0 prose-strong:text-[var(--foreground)] prose-strong:font-semibold">
+            <div className="text-sm text-[var(--foreground)] leading-relaxed prose prose-sm max-w-none prose-p:my-0.5 prose-strong:text-[var(--foreground)] prose-strong:font-semibold">
               <ReactMarkdown>{msg.text}</ReactMarkdown>
             </div>
           )}
         </div>
+
+        {/* MCQ option cards */}
         {!msg.isStreaming && msg.options && msg.options.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2.5">
-            {msg.options.map((opt) => (
-              <button
-                key={opt}
-                onClick={() => onOptionClick(opt)}
-                disabled={isLoading}
-                className="px-3.5 py-1.5 text-xs font-medium border border-primary/30 bg-primary/5 rounded-full text-primary hover:bg-primary hover:text-white hover:border-primary transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {opt}
-              </button>
-            ))}
+          <div className="space-y-2">
+            {msg.options.map((opt, i) => {
+              const isSelected = selected === opt;
+              const isOther = opt.toLowerCase().startsWith('other');
+              return (
+                <button
+                  key={opt}
+                  onClick={() => handleSelect(opt)}
+                  disabled={isLoading || !!selected}
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-sm text-left transition-all duration-150 disabled:cursor-not-allowed group
+                    ${isSelected
+                      ? 'bg-primary border-primary text-white shadow-md shadow-primary/20'
+                      : selected
+                        ? 'bg-white border-[var(--border)] text-[var(--muted-foreground)] opacity-50'
+                        : 'bg-white border-[var(--border)] hover:border-primary hover:bg-[var(--secondary)] text-[var(--foreground)]'
+                    }`}
+                >
+                  <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors duration-150
+                    ${isSelected ? 'bg-white/20 text-white' : 'bg-[var(--secondary)] text-primary group-hover:bg-primary group-hover:text-white'}`}>
+                    {isOther ? '✎' : MCQ_LABELS[i] || '·'}
+                  </span>
+                  <span className="flex-1 font-medium">{opt}</span>
+                  {isSelected && <CheckCircle size={15} className="flex-shrink-0 text-white" />}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
