@@ -6,6 +6,7 @@ const API_KEYS: Record<string, string | undefined> = {
   ANTHROPIC: process.env.ANTHROPIC_API_KEY,
   GEMINI: process.env.GEMINI_API_KEY,
   PERPLEXITY: process.env.PERPLEXITY_API_KEY,
+  GROQ: process.env.GROQ_API_KEY,
 };
 
 function formatErrorResponse(error: unknown, provider?: string) {

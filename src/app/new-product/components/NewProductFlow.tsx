@@ -604,7 +604,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Streaming hook for conversational text only
-  const { response: streamingResponse, isLoading: isStreaming, error: streamError, sendMessage: sendStreamingMessage } = useChat('GEMINI', 'gemini/gemini-2.5-flash-lite', true);
+  const { response: streamingResponse, isLoading: isStreaming, error: streamError, sendMessage: sendStreamingMessage } = useChat('GROQ', 'groq/llama-3.3-70b-versatile', true);
 
   // Show toast on error
   useEffect(() => {
@@ -700,7 +700,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
           { role: 'user', content: 'Extract the current RFQ data from the conversation above as JSON.' },
         ];
 
-        const result = await getChatCompletion('GEMINI', 'gemini/gemini-2.5-flash-lite', jsonMessages, {
+        const result = await getChatCompletion('GROQ', 'groq/llama-3.3-70b-versatile', jsonMessages, {
           temperature: 0.1,
           max_tokens: 2048,
         });
