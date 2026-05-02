@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import toast, { Toaster } from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/lib/hooks/useChat';
 import { getChatCompletion } from '@/lib/ai/chatCompletion';
 import ChatButton from '@/components/ui/ChatButton';
-import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip, UploadCloud, X, FileText } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip, UploadCloud, X, FileText, CheckCircle2, Circle, CircleDotDashed } from 'lucide-react';
 import { saveProduct } from '@/lib/productStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -286,40 +287,240 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
   );
 }
 
-// ─── Step 2: Transition ───────────────────────────────────────────────────────
+// ─── Step 2: Transition — AI Agent Plan ──────────────────────────────────────
+type TaskStatus = 'pending' | 'in-progress' | 'completed';
+
+const AGENT_TASKS = [
+  {
+    id: '1',
+    title: 'Analysing product description',
+    subtasks: ['Extracting key specifications', 'Identifying material requirements', 'Parsing technical standards'],
+  },
+  {
+    id: '2',
+    title: 'Scanning global supplier database',
+    subtasks: ['Querying 12,000+ verified manufacturers', 'Filtering by product category', 'Applying geographic preferences'],
+  },
+  {
+    id: '3',
+    title: 'Matching manufacturer capabilities',
+    subtasks: ['Comparing MOQ & pricing bands', 'Evaluating production capacity', 'Checking lead time compatibility'],
+  },
+  {
+    id: '4',
+    title: 'Verifying compliance & certifications',
+    subtasks: ['Cross-checking required standards', 'Validating audit records', 'Reviewing quality certifications'],
+  },
+  {
+    id: '5',
+    title: 'Preparing your shortlist',
+    subtasks: ['Ranking by relevance score', 'Finalising top manufacturer matches', 'Ready to review'],
+  },
+];
+
+function StatusIcon({ status, size = 16 }: { status: TaskStatus; size?: number }) {
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={status}
+        initial={{ opacity: 0, scale: 0.7, rotate: -15 }}
+        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+        exit={{ opacity: 0, scale: 0.7, rotate: 15 }}
+        transition={{ duration: 0.2, ease: [0.2, 0.65, 0.3, 0.9] }}
+      >
+        {status === 'completed' ? (
+          <CheckCircle2 size={size} className="text-green-500" />
+        ) : status === 'in-progress' ? (
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          >
+            <CircleDotDashed size={size} className="text-primary" />
+          </motion.div>
+        ) : (
+          <Circle size={size} className="text-gray-200" />
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function TransitionStep({ productText, onNext }: { productText: string; onNext: () => void }) {
   const productName = deriveProductName(productText);
+  const [statuses, setStatuses] = useState<Record<string, TaskStatus>>({
+    '1': 'in-progress', '2': 'pending', '3': 'pending', '4': 'pending', '5': 'pending',
+  });
+  const [activeTask, setActiveTask] = useState('1');
+  const [supplierCount, setSupplierCount] = useState(0);
 
   useEffect(() => {
-    const t = setTimeout(onNext, 2800);
-    return () => clearTimeout(t);
+    // Animate supplier counter 0 → 165
+    let count = 0;
+    const counter = setInterval(() => {
+      count = Math.min(count + 5, 165);
+      setSupplierCount(count);
+      if (count >= 165) clearInterval(counter);
+    }, 45);
+
+    // Task sequence — each task takes ~900ms
+    const advance = (id: string, nextId: string | null, delay: number) =>
+      setTimeout(() => {
+        setStatuses((p) => ({ ...p, [id]: 'completed', ...(nextId ? { [nextId]: 'in-progress' } : {}) }));
+        if (nextId) setActiveTask(nextId);
+      }, delay);
+
+    const t1 = advance('1', '2', 900);
+    const t2 = advance('2', '3', 1800);
+    const t3 = advance('3', '4', 2700);
+    const t4 = advance('4', '5', 3500);
+    const t5 = advance('5', null, 4300);
+    const t6 = setTimeout(onNext, 4700);
+
+    return () => { clearInterval(counter); [t1, t2, t3, t4, t5, t6].forEach(clearTimeout); };
   }, [onNext]);
 
   return (
-    <div className="relative min-h-screen bg-white overflow-hidden">
-      <div className="absolute top-6 left-8">
+    <div className="relative min-h-screen bg-white flex overflow-hidden">
+      <div className="absolute top-6 left-8 z-10">
         <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors">
           <span className="text-base">‹</span> Back to Home
         </Link>
       </div>
-      <div className="absolute inset-0 flex items-center justify-end pr-0">
-        <div className="w-[65%] h-[70%] opacity-80"><WorldMapDots /></div>
+
+      {/* Left info panel */}
+      <div className="flex flex-col justify-center px-16 w-[42%] min-h-screen">
+        <motion.div
+          initial={{ opacity: 0, x: -16 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: [0.2, 0.65, 0.3, 0.9] }}
+        >
+          <div className="flex items-center gap-2 mb-7">
+            <motion.span
+              className="w-2 h-2 rounded-full bg-primary"
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <span className="text-xs font-semibold text-primary uppercase tracking-widest">Proquoment AI Agent</span>
+          </div>
+
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-1 leading-tight">
+            Finding manufacturers
+          </h1>
+          <h2 className="text-3xl font-bold text-primary mb-8 leading-tight truncate max-w-xs">
+            {productName}
+          </h2>
+
+          <div className="flex items-baseline gap-2 mb-2">
+            <motion.span
+              className="text-6xl font-bold text-[var(--foreground)] tabular-nums"
+              key={supplierCount}
+            >
+              {supplierCount}
+            </motion.span>
+            <span className="text-lg text-[var(--muted-foreground)] font-medium">suppliers matched</span>
+          </div>
+          <p className="text-xs text-[var(--muted-foreground)]">from our verified global network</p>
+        </motion.div>
       </div>
-      <div className="relative flex flex-col justify-center min-h-screen px-16 max-w-2xl">
-        <h1 className="text-4xl font-bold text-[var(--foreground)] mb-6">Perfect! Let&apos;s dive in</h1>
-        <p className="text-lg text-[var(--foreground)] mb-4 leading-relaxed">
-          Finding manufacturers for: <span className="text-primary font-semibold">{productName}</span>
-        </p>
-        <p className="text-lg text-[var(--foreground)] leading-relaxed">
-          Nice - I&apos;ve already found <span className="text-primary font-bold text-xl">165</span> suppliers that could be a great fit
-        </p>
-        <div className="flex gap-1.5 mt-8">
-          {[0, 1, 2].map((i) => (
-            <span key={i} className="w-2 h-2 rounded-full bg-primary animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-          ))}
-        </div>
+
+      {/* Right: Agent plan card */}
+      <div className="flex-1 flex items-center justify-center px-10 py-20">
+        <motion.div
+          className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: [0.2, 0.65, 0.3, 0.9] }}
+        >
+          {/* Card header */}
+          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2.5">
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full bg-primary"
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <span className="text-xs font-medium text-[var(--muted-foreground)]">Agent is working…</span>
+          </div>
+
+          {/* Task list */}
+          <div className="p-4 space-y-0.5">
+            {AGENT_TASKS.map((task) => {
+              const status = statuses[task.id];
+              const isActive = status === 'in-progress';
+              const isDone = status === 'completed';
+
+              return (
+                <div key={task.id} className="relative">
+                  {/* Vertical connector */}
+                  {task.id !== '5' && (
+                    <div className="absolute left-[15px] top-[26px] bottom-0 w-px border-l border-dashed border-gray-200" />
+                  )}
+
+                  <div className={`flex items-start gap-3 px-2 py-1.5 rounded-lg transition-colors duration-300 ${isActive ? 'bg-blue-50/60' : ''}`}>
+                    <div className="mt-0.5 flex-shrink-0">
+                      <StatusIcon status={status} size={15} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm leading-snug transition-colors duration-300 ${
+                        isDone ? 'text-gray-400 line-through' : isActive ? 'text-[var(--foreground)] font-medium' : 'text-gray-400'
+                      }`}>
+                        {task.title}
+                      </p>
+
+                      {/* Subtasks — shown only when active */}
+                      <AnimatePresence>
+                        {isActive && (
+                          <motion.ul
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.25, ease: [0.2, 0.65, 0.3, 0.9] }}
+                            className="mt-1.5 space-y-1 overflow-hidden"
+                          >
+                            {task.subtasks.map((sub, i) => (
+                              <motion.li
+                                key={sub}
+                                className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]"
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.08, duration: 0.2, ease: 'easeOut' }}
+                              >
+                                <span className="w-1 h-1 rounded-full bg-primary/40 flex-shrink-0" />
+                                {sub}
+                              </motion.li>
+                            ))}
+                          </motion.ul>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Right status badge */}
+                    <AnimatePresence>
+                      {isDone && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex-shrink-0 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded mt-0.5"
+                        >
+                          done
+                        </motion.span>
+                      )}
+                      {isActive && (
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex-shrink-0 text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-0.5"
+                        >
+                          running
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
       </div>
-      <ChatButton />
     </div>
   );
 }
