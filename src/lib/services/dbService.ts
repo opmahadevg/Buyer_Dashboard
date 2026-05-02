@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
+import { ALL_PRODUCT_DETAIL_DATA } from '@/lib/productDetailData';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -120,6 +121,24 @@ export interface DbOrganization {
   description: string;
 }
 
+// ── Static demo products (always visible after login) ───────────────────────
+
+const STATIC_PRODUCTS: DbProduct[] = Object.values(ALL_PRODUCT_DETAIL_DATA).map((p) => ({
+  id: p.id,
+  name: p.name,
+  category: '',
+  description: '',
+  moq: '',
+  image: p.image,
+  imageAlt: p.imageAlt,
+  stage: p.stage as DbProduct['stage'],
+  status: 'No Updates' as DbProduct['status'],
+  updated: 'May 2, 2026',
+  ownerId: '',
+  organizationId: null,
+  isStatic: true,
+}));
+
 // ── Helper ─────────────────────────────────────────────────────────────────
 
 function isSchemaError(error: any): boolean {
@@ -143,7 +162,7 @@ export const productService = {
   async getAll(): Promise<DbProduct[]> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    if (!user) return STATIC_PRODUCTS;
 
     try {
       const { data, error } = await supabase
@@ -153,10 +172,10 @@ export const productService = {
 
       if (error) {
         if (isSchemaError(error)) throw error;
-        return [];
+        return STATIC_PRODUCTS;
       }
 
-      return (data || []).map((row) => ({
+      const supabaseProducts = (data || []).map((row) => ({
         id: row.id,
         name: row.name,
         category: row.category || '',
@@ -171,16 +190,25 @@ export const productService = {
         organizationId: row.organization_id,
         isStatic: row.is_static,
       }));
+
+      // Merge: Supabase products first (user-created), then static ones not already present
+      const supabaseIds = new Set(supabaseProducts.map((p) => p.id));
+      const staticFallback = STATIC_PRODUCTS.filter((p) => !supabaseIds.has(p.id));
+      return [...supabaseProducts, ...staticFallback];
     } catch (err: any) {
       if (isSchemaError(err)) throw err;
-      return [];
+      return STATIC_PRODUCTS;
     }
   },
 
   async getById(id: string): Promise<DbProduct | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+
+    // Check static products first (available with or without auth)
+    const staticMatch = STATIC_PRODUCTS.find((p) => p.id === id);
+
+    if (!user) return staticMatch ?? null;
 
     try {
       const { data, error } = await supabase
@@ -191,9 +219,9 @@ export const productService = {
 
       if (error) {
         if (isSchemaError(error)) throw error;
-        return null;
+        return staticMatch ?? null;
       }
-      if (!data) return null;
+      if (!data) return staticMatch ?? null;
 
       return {
         id: data.id,
@@ -212,7 +240,7 @@ export const productService = {
       };
     } catch (err: any) {
       if (isSchemaError(err)) throw err;
-      return null;
+      return staticMatch ?? null;
     }
   },
 
