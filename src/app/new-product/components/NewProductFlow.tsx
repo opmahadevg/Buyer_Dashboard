@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/lib/hooks/useChat';
 import { getChatCompletion } from '@/lib/ai/chatCompletion';
 import ChatButton from '@/components/ui/ChatButton';
+import { Globe } from '@/components/ui/cobe-globe';
 import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip, UploadCloud, X, FileText, CheckCircle2, Circle, CircleDotDashed } from 'lucide-react';
 import { saveProduct } from '@/lib/productStore';
 
@@ -229,22 +230,40 @@ const CATEGORY_CHIPS = [
   { label: '🧴 Food & Beverage', value: 'Food or beverage product' },
 ];
 
+// ─── Globe supplier markers (major manufacturing hubs) ────────────────────────
+const SUPPLIER_MARKERS = [
+  { id: 'shenzhen',  location: [22.5,  114.1]  as [number, number] },
+  { id: 'shanghai',  location: [31.2,  121.5]  as [number, number] },
+  { id: 'guangzhou', location: [23.1,  113.3]  as [number, number] },
+  { id: 'vietnam',   location: [10.8,  106.7]  as [number, number] },
+  { id: 'mumbai',    location: [19.1,   72.9]  as [number, number] },
+  { id: 'dhaka',     location: [23.8,   90.4]  as [number, number] },
+  { id: 'istanbul',  location: [41.0,   28.9]  as [number, number] },
+  { id: 'hamburg',   location: [53.6,   10.0]  as [number, number] },
+  { id: 'london',    location: [51.5,   -0.1]  as [number, number] },
+  { id: 'mexico',    location: [25.7, -100.3]  as [number, number] },
+  { id: 'losangeles',location: [34.0, -118.2]  as [number, number] },
+  { id: 'saopaulo',  location: [-23.5,  -46.6] as [number, number] },
+  { id: 'seoul',     location: [37.6,  126.9]  as [number, number] },
+  { id: 'taipei',    location: [25.0,  121.5]  as [number, number] },
+  { id: 'jakarta',   location: [ -6.2,  106.8] as [number, number] },
+];
+
 // ─── Step 1: Intro ────────────────────────────────────────────────────────────
 function IntroStep({ onNext }: { onNext: (product: string) => void }) {
   const [value, setValue] = useState('');
 
   return (
-    <div className="relative min-h-screen bg-white overflow-hidden">
-      <div className="absolute top-6 left-8">
+    <div className="relative min-h-screen bg-white overflow-hidden flex">
+      {/* Back link */}
+      <div className="absolute top-6 left-8 z-10">
         <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors">
           <span className="text-base">‹</span> Back to Home
         </Link>
       </div>
-      <div className="absolute right-[8%] top-[5%] pointer-events-none"><CrescentDots size={200} rotate={-15} opacity={0.9} /></div>
-      <div className="absolute right-[22%] top-[38%] pointer-events-none"><CrescentDots size={160} rotate={10} opacity={0.85} /></div>
-      <div className="absolute right-[5%] top-[42%] pointer-events-none"><CrescentDots size={180} rotate={-5} opacity={0.8} /></div>
 
-      <div className="flex flex-col justify-center min-h-screen px-16 max-w-3xl">
+      {/* Left — content */}
+      <div className="flex flex-col justify-center min-h-screen px-14 w-[54%] min-w-0">
         <h1 className="text-4xl font-bold text-[var(--foreground)] mb-3 leading-tight">
           What product are we sourcing today?
         </h1>
@@ -272,7 +291,7 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
           />
         </div>
         <p className="text-xs text-[var(--muted-foreground)] italic mb-7">
-          More detail = better manufacturer matches. Don't worry — the AI will ask follow-up questions.
+          More detail = better manufacturer matches. Don&apos;t worry — the AI will ask follow-up questions.
         </p>
         <button
           onClick={() => value.trim() && onNext(value.trim())}
@@ -282,6 +301,30 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
           Start <ArrowRight size={18} />
         </button>
       </div>
+
+      {/* Right — interactive globe */}
+      <div className="flex-1 flex flex-col items-center justify-center pr-8 pl-4 py-12">
+        <p className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest mb-4">
+          12,000+ verified manufacturers
+        </p>
+        <Globe
+          markers={SUPPLIER_MARKERS}
+          className="w-full max-w-[420px]"
+          markerColor={[0.23, 0.21, 0.91]}
+          baseColor={[1, 1, 1]}
+          glowColor={[0.82, 0.82, 0.97]}
+          dark={0}
+          mapBrightness={9}
+          markerSize={0.028}
+          speed={0.0015}
+          theta={0.25}
+          diffuse={1.4}
+        />
+        <p className="text-[11px] text-[var(--muted-foreground)] mt-4 text-center">
+          Drag to explore · Suppliers highlighted in blue
+        </p>
+      </div>
+
       <ChatButton />
     </div>
   );
