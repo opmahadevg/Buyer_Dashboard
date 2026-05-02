@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Package, Building2, Settings, ChevronLeft, ChevronRight, Sparkles, LogOut } from 'lucide-react';
-import { productService, DbProduct } from '@/lib/services/dbService';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SidebarProps {
@@ -15,8 +14,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { signOut, user } = useAuth();
-  const [productsExpanded, setProductsExpanded] = useState(true);
-  const [products, setProducts] = useState<DbProduct[]>([]);
   const [userEmail, setUserEmail] = useState('');
   const [signingOut, setSigningOut] = useState(false);
 
@@ -29,18 +26,6 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     if (user?.email) setUserEmail(user.email);
   }, [user]);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const prods = await productService.getAll();
-        setProducts(prods);
-      } catch {
-        // Silently fail — sidebar still renders
-      }
-    };
-    load();
-  }, []);
-
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -52,20 +37,11 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
     }
   };
 
-  const allProducts = products.map((p) => ({
-    id: p.id,
-    name: p.name.length > 22 ? p.name.slice(0, 22) + '…' : p.name,
-    href: `/product-detail?id=${p.id}`,
-    isNew: !p.isStatic,
-  }));
-
   const displayEmail = userEmail
     ? userEmail.length > 22
       ? userEmail.slice(0, 22) + '…'
       : userEmail
     : 'honeyimtb2000@gma…';
-
-  const subMenuHeight = allProducts.length * 34 + 8;
 
   return (
     <aside
@@ -120,58 +96,27 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
         </Link>
 
         {/* Products */}
-        <div>
-          <Link
-            href="/products-list"
-            onClick={() => setProductsExpanded(!productsExpanded)}
-            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group relative ${
-              isActive('/products-list') || isActive('/product-detail')
-                ? 'bg-[var(--secondary)] text-primary'
-                : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
+        <Link
+          href="/products-list"
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 group relative ${
+            isActive('/products-list') || isActive('/product-detail')
+              ? 'bg-[var(--secondary)] text-primary'
+              : 'text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]'
+          }`}
+        >
+          <Package size={18} className="flex-shrink-0" />
+          <span
+            className="whitespace-nowrap overflow-hidden transition-all duration-200"
+            style={{ maxWidth: open ? '160px' : '0px', opacity: open ? 1 : 0 }}
           >
-            <Package size={18} className="flex-shrink-0" />
-            <span
-              className="flex-1 text-left whitespace-nowrap overflow-hidden transition-all duration-200"
-              style={{ maxWidth: open ? '120px' : '0px', opacity: open ? 1 : 0 }}
-            >
+            Products
+          </span>
+          {!open && (
+            <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--foreground)] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
               Products
-            </span>
-            {!open && (
-              <div className="absolute left-full ml-2 px-2 py-1 bg-[var(--foreground)] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity duration-150">
-                Products
-              </div>
-            )}
-          </Link>
-
-          {/* Animated sub-menu */}
-          <div
-            className="overflow-hidden"
-            style={{
-              maxHeight: open && productsExpanded ? `${subMenuHeight}px` : '0px',
-              opacity: open && productsExpanded ? 1 : 0,
-              transition: 'max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease',
-            }}
-          >
-            <div className="mt-0.5 ml-4 pl-3 border-l border-[var(--border)] space-y-0.5 py-1">
-              {allProducts.map((p) => (
-                <Link
-                  key={p.id}
-                  href={p.href}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-all duration-150 truncate"
-                >
-                  <span className={`w-1 h-1 rounded-full flex-shrink-0 ${p.isNew ? 'bg-primary' : 'bg-current'}`} />
-                  <span className="truncate">{p.name}</span>
-                  {p.isNew && (
-                    <span className="ml-auto flex-shrink-0 text-[10px] font-medium text-primary bg-[var(--secondary)] px-1.5 py-0.5 rounded-full">
-                      New
-                    </span>
-                  )}
-                </Link>
-              ))}
             </div>
-          </div>
-        </div>
+          )}
+        </Link>
 
         {/* Organization */}
         <Link
