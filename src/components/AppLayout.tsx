@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import AnnouncementBanner from './AnnouncementBanner';
 import PageTransition from './PageTransition';
@@ -12,8 +13,13 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
+  const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (pathname === '/new-product') setSidebarOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const loadProfile = async () => {
