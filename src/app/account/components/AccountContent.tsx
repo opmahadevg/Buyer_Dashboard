@@ -1,35 +1,11 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { Building2, MapPin, Phone, FileText, Save, CheckCircle, Loader2 } from 'lucide-react';
-import { organizationService, DbOrganization } from '@/lib/services/dbService';
 import { toast } from 'sonner';
 import { Toaster } from 'sonner';
+import { getStoredOrg, saveOrg, StoredOrg, DEFAULT_ORG } from '@/lib/orgStore';
 
-interface OrgFormData {
-  name: string;
-  legalName: string;
-  type: string;
-  industry: string;
-  founded: string;
-  registrationNumber: string;
-  taxId: string;
-  website: string;
-  email: string;
-  phone: string;
-  street: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-  teamSize: string;
-  description: string;
-}
-
-const EMPTY_FORM: OrgFormData = {
-  name: '', legalName: '', type: '', industry: '', founded: '',
-  registrationNumber: '', taxId: '', website: '', email: '', phone: '',
-  street: '', city: '', state: '', zip: '', country: '', teamSize: '', description: '',
-};
+type OrgFormData = StoredOrg;
 
 interface FieldProps {
   label: string;
@@ -79,45 +55,13 @@ function TextAreaField({ label, name, value, onChange, placeholder }: TextAreaFi
 }
 
 export default function AccountContent() {
-  const [form, setForm] = useState<OrgFormData>(EMPTY_FORM);
-  const [orgId, setOrgId] = useState<string | null>(null);
+  const [form, setForm] = useState<OrgFormData>(DEFAULT_ORG);
   const [saved, setSaved] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Load from localStorage on mount
   useEffect(() => {
-    const load = async () => {
-      try {
-        const org = await organizationService.get();
-        if (org) {
-          setOrgId(org.id);
-          setForm({
-            name: org.name,
-            legalName: org.legalName,
-            type: org.orgType,
-            industry: org.industry,
-            founded: org.founded,
-            registrationNumber: org.registrationNumber,
-            taxId: org.taxId,
-            website: org.website,
-            email: org.email,
-            phone: org.phone,
-            street: org.street,
-            city: org.city,
-            state: org.state,
-            zip: org.zip,
-            country: org.country,
-            teamSize: org.teamSize,
-            description: org.description,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to load organization:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    setForm(getStoredOrg());
   }, []);
 
   const handleChange = (name: keyof OrgFormData, value: string) => {
@@ -126,30 +70,9 @@ export default function AccountContent() {
   };
 
   const handleSave = async () => {
-    if (!orgId) return;
     setSaving(true);
     try {
-      const dbOrg: DbOrganization = {
-        id: orgId,
-        name: form.name,
-        legalName: form.legalName,
-        orgType: form.type,
-        industry: form.industry,
-        founded: form.founded,
-        registrationNumber: form.registrationNumber,
-        taxId: form.taxId,
-        website: form.website,
-        email: form.email,
-        phone: form.phone,
-        street: form.street,
-        city: form.city,
-        state: form.state,
-        zip: form.zip,
-        country: form.country,
-        teamSize: form.teamSize,
-        description: form.description,
-      };
-      await organizationService.update(dbOrg);
+      await saveOrg(form);
       setSaved(true);
       toast.success('Organization saved successfully.');
       setTimeout(() => setSaved(false), 3000);
@@ -160,17 +83,29 @@ export default function AccountContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 size={24} className="animate-spin text-primary" />
-      </div>
-    );
-  }
+  const SaveButton = ({ extraClass = '' }: { extraClass?: string }) => (
+    <button
+      onClick={handleSave}
+      disabled={saving}
+      className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-60 active:scale-95 ${extraClass} ${
+        saved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-[#2e29c4]'
+      }`}
+    >
+      {saving ? (
+        <Loader2 size={15} className="animate-spin" />
+      ) : saved ? (
+        <CheckCircle size={15} />
+      ) : (
+        <Save size={15} />
+      )}
+      {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+    </button>
+  );
 
   return (
     <div className="px-8 py-8 max-w-4xl mx-auto">
       <Toaster position="bottom-right" richColors />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
@@ -179,22 +114,7 @@ export default function AccountContent() {
             Manage your organization profile and business details
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || !orgId}
-          className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all disabled:opacity-60 ${
-            saved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-[#2e29c4]'
-          }`}
-        >
-          {saving ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : saved ? (
-            <CheckCircle size={15} />
-          ) : (
-            <Save size={15} />
-          )}
-          {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
-        </button>
+        <SaveButton />
       </div>
 
       {/* Organization Identity */}
@@ -204,8 +124,8 @@ export default function AccountContent() {
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Organization Identity</h2>
         </div>
         <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[var(--border)]">
-          <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
-            {form.name.charAt(0).toUpperCase() || 'O'}
+          <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-all duration-200">
+            {(form.name || 'O').charAt(0).toUpperCase()}
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--foreground)]">{form.name || 'Organization Name'}</p>
@@ -270,22 +190,7 @@ export default function AccountContent() {
       </div>
 
       <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={saving || !orgId}
-          className={`flex items-center gap-2 px-6 py-2.5 text-sm font-semibold rounded-lg transition-all disabled:opacity-60 ${
-            saved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-[#2e29c4]'
-          }`}
-        >
-          {saving ? (
-            <Loader2 size={15} className="animate-spin" />
-          ) : saved ? (
-            <CheckCircle size={15} />
-          ) : (
-            <Save size={15} />
-          )}
-          {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
-        </button>
+        <SaveButton extraClass="px-6" />
       </div>
     </div>
   );

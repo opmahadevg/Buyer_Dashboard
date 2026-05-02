@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, Package, Building2, Settings, ChevronDown, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { productService, DbProduct, userProfileService } from '@/lib/services/dbService';
+import { getStoredOrg, onOrgUpdated } from '@/lib/orgStore';
 
 interface SidebarProps {
   open: boolean;
@@ -15,12 +16,21 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
   const [productsExpanded, setProductsExpanded] = useState(true);
   const [products, setProducts] = useState<DbProduct[]>([]);
   const [userEmail, setUserEmail] = useState('');
-  const [orgName, setOrgName] = useState("Honey's Org");
+  const [orgName, setOrgName] = useState(() => getStoredOrg().name);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
+
+  // Keep org name in sync whenever Account saves
+  useEffect(() => {
+    setOrgName(getStoredOrg().name);
+    const unsubscribe = onOrgUpdated(() => {
+      setOrgName(getStoredOrg().name);
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -64,11 +74,11 @@ export default function Sidebar({ open, onToggle }: SidebarProps) {
       {/* Logo / Org Switcher */}
       <div className="flex items-center justify-between px-3 py-3 border-b border-[var(--border)] min-h-[56px] overflow-hidden">
         <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer hover:bg-[var(--muted)] rounded-lg px-2 py-1.5 transition-colors duration-150">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-            H
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0 transition-all duration-200">
+            {(orgName || 'H').charAt(0).toUpperCase()}
           </div>
           <div
-            className="overflow-hidden transition-all duration-250"
+            className="overflow-hidden"
             style={{
               maxWidth: open ? '160px' : '0px',
               opacity: open ? 1 : 0,

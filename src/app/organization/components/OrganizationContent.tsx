@@ -1,30 +1,8 @@
 'use client';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building2, MapPin, Phone, Mail, Globe, Users, FileText, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-
-const ORG_DATA = {
-  name: "Honey\'s Org",
-  legalName: "Honey Enterprises Pvt. Ltd.",
-  type: "Private Limited Company",
-  industry: "Textile & Apparel",
-  founded: "2018",
-  registrationNumber: "REG-2018-HE-04421",
-  taxId: "GSTIN: 27AABCH1234F1Z5",
-  website: "https://honeysorg.com",
-  email: "contact@honeysorg.com",
-  phone: "+91 98765 43210",
-  address: {
-    street: "42, Industrial Estate, Phase II",
-    city: "Mumbai",
-    state: "Maharashtra",
-    zip: "400072",
-    country: "India",
-  },
-  teamSize: "12–50 employees",
-  description:
-    "Honey's Org is a sourcing and procurement company specialising in home textiles, apparel, and agricultural commodities. We connect global buyers with verified manufacturers across South Asia.",
-};
+import { getStoredOrg, onOrgUpdated, StoredOrg } from '@/lib/orgStore';
 
 interface InfoRowProps {
   icon: React.ReactNode;
@@ -34,6 +12,7 @@ interface InfoRowProps {
 }
 
 function InfoRow({ icon, label, value, link }: InfoRowProps) {
+  if (!value) return null;
   return (
     <div className="flex items-start gap-3 py-3.5 border-b border-[var(--border)] last:border-0">
       <div className="w-8 h-8 rounded-lg bg-[var(--secondary)] flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -60,6 +39,18 @@ function InfoRow({ icon, label, value, link }: InfoRowProps) {
 }
 
 export default function OrganizationContent() {
+  const [org, setOrg] = useState<StoredOrg>(getStoredOrg());
+
+  useEffect(() => {
+    // Re-read whenever Account saves
+    const unsubscribe = onOrgUpdated(() => {
+      setOrg(getStoredOrg());
+    });
+    return unsubscribe;
+  }, []);
+
+  const cityStateZip = [org.city, org.state, org.zip].filter(Boolean).join(', ');
+
   return (
     <div className="px-8 py-8 max-w-4xl mx-auto">
       {/* Header */}
@@ -72,7 +63,7 @@ export default function OrganizationContent() {
         </div>
         <Link
           href="/account"
-          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-[#2e29c4] transition-colors"
+          className="px-4 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-[#2e29c4] active:scale-95 transition-all duration-200"
         >
           Edit in Account
         </Link>
@@ -81,25 +72,31 @@ export default function OrganizationContent() {
       {/* Org Identity Card */}
       <div className="bg-white rounded-xl border border-[var(--border)] p-6 mb-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl flex-shrink-0">
-            H
+          <div className="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 transition-all duration-300">
+            {(org.name || 'O').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--foreground)]">{ORG_DATA.name}</h2>
-            <p className="text-sm text-[var(--muted-foreground)]">{ORG_DATA.legalName}</p>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-xs bg-[var(--secondary)] text-primary font-medium px-2.5 py-0.5 rounded-full">
-                {ORG_DATA.type}
-              </span>
-              <span className="text-xs bg-[var(--muted)] text-[var(--muted-foreground)] font-medium px-2.5 py-0.5 rounded-full">
-                {ORG_DATA.industry}
-              </span>
+            <h2 className="text-xl font-bold text-[var(--foreground)]">{org.name}</h2>
+            <p className="text-sm text-[var(--muted-foreground)]">{org.legalName}</p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              {org.type && (
+                <span className="text-xs bg-[var(--secondary)] text-primary font-medium px-2.5 py-0.5 rounded-full">
+                  {org.type}
+                </span>
+              )}
+              {org.industry && (
+                <span className="text-xs bg-[var(--muted)] text-[var(--muted-foreground)] font-medium px-2.5 py-0.5 rounded-full">
+                  {org.industry}
+                </span>
+              )}
             </div>
           </div>
         </div>
-        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed border-t border-[var(--border)] pt-4">
-          {ORG_DATA.description}
-        </p>
+        {org.description && (
+          <p className="text-sm text-[var(--muted-foreground)] leading-relaxed border-t border-[var(--border)] pt-4">
+            {org.description}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -110,9 +107,9 @@ export default function OrganizationContent() {
             Contact Details
           </h3>
           <div className="mt-3">
-            <InfoRow icon={<Mail size={15} />} label="Email" value={ORG_DATA.email} link={`mailto:${ORG_DATA.email}`} />
-            <InfoRow icon={<Phone size={15} />} label="Phone" value={ORG_DATA.phone} />
-            <InfoRow icon={<Globe size={15} />} label="Website" value={ORG_DATA.website} link={ORG_DATA.website} />
+            <InfoRow icon={<Mail size={15} />} label="Email" value={org.email} link={org.email ? `mailto:${org.email}` : undefined} />
+            <InfoRow icon={<Phone size={15} />} label="Phone" value={org.phone} />
+            <InfoRow icon={<Globe size={15} />} label="Website" value={org.website} link={org.website || undefined} />
           </div>
         </div>
 
@@ -123,9 +120,11 @@ export default function OrganizationContent() {
             Address
           </h3>
           <div className="mt-3">
-            <InfoRow icon={<MapPin size={15} />} label="Street" value={ORG_DATA.address.street} />
-            <InfoRow icon={<Building2 size={15} />} label="City / State" value={`${ORG_DATA.address.city}, ${ORG_DATA.address.state} ${ORG_DATA.address.zip}`} />
-            <InfoRow icon={<Globe size={15} />} label="Country" value={ORG_DATA.address.country} />
+            <InfoRow icon={<MapPin size={15} />} label="Street" value={org.street} />
+            {cityStateZip && (
+              <InfoRow icon={<Building2 size={15} />} label="City / State" value={cityStateZip} />
+            )}
+            <InfoRow icon={<Globe size={15} />} label="Country" value={org.country} />
           </div>
         </div>
 
@@ -136,9 +135,9 @@ export default function OrganizationContent() {
             Business Info
           </h3>
           <div className="mt-3">
-            <InfoRow icon={<FileText size={15} />} label="Registration No." value={ORG_DATA.registrationNumber} />
-            <InfoRow icon={<FileText size={15} />} label="Tax ID" value={ORG_DATA.taxId} />
-            <InfoRow icon={<Building2 size={15} />} label="Founded" value={ORG_DATA.founded} />
+            <InfoRow icon={<FileText size={15} />} label="Registration No." value={org.registrationNumber} />
+            <InfoRow icon={<FileText size={15} />} label="Tax ID" value={org.taxId} />
+            <InfoRow icon={<Building2 size={15} />} label="Founded" value={org.founded} />
           </div>
         </div>
 
@@ -149,8 +148,8 @@ export default function OrganizationContent() {
             Team
           </h3>
           <div className="mt-3">
-            <InfoRow icon={<Users size={15} />} label="Team Size" value={ORG_DATA.teamSize} />
-            <InfoRow icon={<Building2 size={15} />} label="Industry" value={ORG_DATA.industry} />
+            <InfoRow icon={<Users size={15} />} label="Team Size" value={org.teamSize} />
+            <InfoRow icon={<Building2 size={15} />} label="Industry" value={org.industry} />
           </div>
         </div>
       </div>
