@@ -16,6 +16,8 @@ const nextConfig = {
   images: {
     remotePatterns: imageHosts,
     minimumCacheTTL: 60,
-  }
+  },
+
+  devIndicators: false,
 };
 export default nextConfig;
