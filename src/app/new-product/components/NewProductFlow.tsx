@@ -450,11 +450,11 @@ function MessageBubble({ msg, onOptionClick, isLoading }: { msg: Message; onOpti
       {/* Quick-reply chips — only on last non-streaming message */}
       {!msg.isStreaming && msg.options && msg.options.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-4">
-          {msg.options.map((opt) => {
+          {msg.options.map((opt, idx) => {
             const isSelected = selected === opt;
             return (
               <button
-                key={opt}
+                key={`${idx}-${opt}`}
                 onClick={() => handleSelect(opt)}
                 disabled={isLoading || !!selected}
                 className={`px-3.5 py-1.5 rounded-full border text-sm font-medium transition-all duration-150 disabled:cursor-not-allowed
