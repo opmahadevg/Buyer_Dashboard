@@ -10,14 +10,37 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-const data = [
-  { category: 'Apparel', received: 14, accepted: 9 },
-  { category: 'Textiles', received: 11, accepted: 7 },
-  { category: 'Electronics', received: 6, accepted: 3 },
-  { category: 'Home Goods', received: 8, accepted: 5 },
-  { category: 'Packaging', received: 4, accepted: 2 },
-  { category: 'Food', received: 3, accepted: 3 },
-];
+const CATEGORY_DATA: Record<string, { category: string; received: number; accepted: number }[]> = {
+  'range-7d': [
+    { category: 'Apparel', received: 3, accepted: 2 },
+    { category: 'Electronics', received: 2, accepted: 1 },
+    { category: 'Home Goods', received: 2, accepted: 2 },
+    { category: 'Packaging', received: 1, accepted: 1 },
+  ],
+  'range-30d': [
+    { category: 'Apparel', received: 8, accepted: 5 },
+    { category: 'Textiles', received: 6, accepted: 4 },
+    { category: 'Electronics', received: 4, accepted: 2 },
+    { category: 'Home Goods', received: 5, accepted: 3 },
+    { category: 'Packaging', received: 3, accepted: 2 },
+  ],
+  'range-monthly': [
+    { category: 'Apparel', received: 8, accepted: 5 },
+    { category: 'Textiles', received: 6, accepted: 4 },
+    { category: 'Electronics', received: 4, accepted: 2 },
+    { category: 'Home Goods', received: 5, accepted: 3 },
+    { category: 'Packaging', received: 3, accepted: 2 },
+    { category: 'Food', received: 2, accepted: 2 },
+  ],
+  'range-custom': [
+    { category: 'Apparel', received: 14, accepted: 9 },
+    { category: 'Textiles', received: 11, accepted: 7 },
+    { category: 'Electronics', received: 6, accepted: 3 },
+    { category: 'Home Goods', received: 8, accepted: 5 },
+    { category: 'Packaging', received: 4, accepted: 2 },
+    { category: 'Food', received: 3, accepted: 3 },
+  ],
+};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -36,7 +59,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export default function QuotesByCategoryChart() {
+interface QuotesByCategoryChartProps {
+  range?: string;
+}
+
+export default function QuotesByCategoryChart({ range = 'range-30d' }: QuotesByCategoryChartProps) {
+  const data = CATEGORY_DATA[range] || CATEGORY_DATA['range-30d'];
+
   return (
     <ResponsiveContainer width="100%" height={220}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }} barGap={2}>

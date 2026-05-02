@@ -1,5 +1,6 @@
 import React from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, TrendingDown, Minus, ArrowRight } from 'lucide-react';
 
 interface KpiCardProps {
   label: string;
@@ -10,6 +11,7 @@ interface KpiCardProps {
   alert?: boolean;
   icon: React.ReactNode;
   iconBg: string;
+  href?: string;
 }
 
 export default function KpiCard({
@@ -21,19 +23,21 @@ export default function KpiCard({
   alert,
   icon,
   iconBg,
+  href,
 }: KpiCardProps) {
   const trendColor =
     trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-500' : 'text-gray-400';
   const TrendIcon =
     trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
 
-  return (
+  const inner = (
     <div
-      className={`bg-white rounded-xl border p-5 flex flex-col gap-3 cursor-default
+      className={`bg-white rounded-xl border p-5 flex flex-col gap-3
         transition-all duration-200 ease-out
         hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/5
         active:translate-y-0 active:shadow-md
-        ${alert ? 'border-red-300 bg-red-50/30' : 'border-[var(--border)]'}`}
+        ${alert ? 'border-red-300 bg-red-50/30' : 'border-[var(--border)]'}
+        ${href ? 'cursor-pointer group' : 'cursor-default'}`}
     >
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
@@ -49,12 +53,22 @@ export default function KpiCard({
           <p className="text-xs text-[var(--muted-foreground)] mt-1">{subValue}</p>
         )}
       </div>
-      {trendValue && (
-        <div className={`flex items-center gap-1 text-xs font-medium ${trendColor}`}>
-          <TrendIcon size={13} />
-          <span>{trendValue}</span>
-        </div>
-      )}
+      <div className="flex items-center justify-between">
+        {trendValue && (
+          <div className={`flex items-center gap-1 text-xs font-medium ${trendColor}`}>
+            <TrendIcon size={13} />
+            <span>{trendValue}</span>
+          </div>
+        )}
+        {href && (
+          <ArrowRight size={13} className="text-[var(--muted-foreground)] opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+        )}
+      </div>
     </div>
   );
+
+  if (href) {
+    return <Link href={href} className="block">{inner}</Link>;
+  }
+  return inner;
 }

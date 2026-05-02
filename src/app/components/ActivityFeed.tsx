@@ -1,9 +1,9 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Package, FileText, CheckCircle, AlertTriangle, MessageSquare, Loader2 } from 'lucide-react';
 import { activityService, DbActivityItem } from '@/lib/services/dbService';
-import Icon from '@/components/ui/AppIcon';
-
+import { getStoredProducts } from '@/lib/productStore';
 
 const ICON_MAP: Record<string, { icon: any; iconBg: string; iconColor: string }> = {
   quote: { icon: FileText, iconBg: 'bg-blue-50', iconColor: 'text-blue-600' },
@@ -13,32 +13,113 @@ const ICON_MAP: Record<string, { icon: any; iconBg: string; iconColor: string }>
   product: { icon: Package, iconBg: 'bg-amber-50', iconColor: 'text-amber-600' },
 };
 
+const STATIC_FALLBACK: DbActivityItem[] = [
+  {
+    id: 'static-1',
+    activityType: 'quote',
+    title: 'Quote received: Ceramic Plate 26cm',
+    description: '3 suppliers responded to your RFQ. Best price: $1.85/unit from Shenzhen Ceramics Co.',
+    productId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 32).toISOString(),
+  },
+  {
+    id: 'static-2',
+    activityType: 'action',
+    title: 'Action required: Cotton T-Shirt MOQ review',
+    description: 'Supplier has updated their MOQ to 500 units. Confirm or request renegotiation.',
+    productId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+  },
+  {
+    id: 'static-3',
+    activityType: 'order',
+    title: 'Order confirmed: Kraft Packaging Boxes',
+    description: 'PO #4821 confirmed with Shenzhen PackPro. Estimated delivery: May 28, 2026.',
+    productId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 'static-4',
+    activityType: 'product',
+    title: 'RFQ submitted: Bamboo Cutting Board',
+    description: 'Your RFQ has been sent to 8 matching suppliers in Guangdong and Zhejiang.',
+    productId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 22).toISOString(),
+  },
+  {
+    id: 'static-5',
+    activityType: 'message',
+    title: 'Supplier message: Stainless Steel Bottle',
+    description: 'Hangzhou MetalWorks sent an update on your sampling request. 2 images attached.',
+    productId: null,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 47).toISOString(),
+  },
+];
+
 function timeAgo(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
-  return `${Math.floor(diff / 86400)} days ago`;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
 }
 
-export default function ActivityFeed() {
+interface ActivityFeedProps {
+  limit?: number;
+}
+
+export default function ActivityFeed({ limit = 10 }: ActivityFeedProps) {
+  const router = useRouter();
   const [activities, setActivities] = useState<DbActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await activityService.getRecent(10);
-        setActivities(data);
+        const dbData = await activityService.getRecent(limit);
+        if (dbData.length > 0) {
+          setActivities(dbData.slice(0, limit));
+        } else {
+          // Build from localStorage products + static fallback
+          const localProducts = getStoredProducts();
+          const localActivities: DbActivityItem[] = localProducts.slice(0, 3).map((p, i) => ({
+            id: `local-${p.id}`,
+            activityType: i === 0 ? 'product' : i === 1 ? 'quote' : 'action',
+            title: i === 0
+              ? `RFQ submitted: ${p.name}`
+              : i === 1
+                ? `Quotes incoming: ${p.name}`
+                : `Review required: ${p.name}`,
+            description: i === 0
+              ? `Your RFQ has been sent to matching suppliers.`
+              : i === 1
+                ? `Suppliers are preparing quotes. Check back soon.`
+                : `Supplier response needs your review before proceeding.`,
+            productId: p.id,
+            createdAt: p.updated || new Date().toISOString(),
+          }));
+
+          const combined = [...localActivities, ...STATIC_FALLBACK];
+          setActivities(combined.slice(0, limit));
+        }
       } catch (err) {
-        console.error('Failed to load activity:', err);
+        setActivities(STATIC_FALLBACK.slice(0, limit));
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, []);
+  }, [limit]);
+
+  const handleItemClick = (item: DbActivityItem) => {
+    if (item.productId) {
+      router.push(`/product-detail?id=${item.productId}`);
+    } else {
+      router.push('/products-list');
+    }
+  };
 
   if (loading) {
     return (
@@ -58,12 +139,13 @@ export default function ActivityFeed() {
 
   return (
     <div className="space-y-0">
-      {activities?.map((item) => {
+      {activities.map((item) => {
         const config = ICON_MAP[item?.activityType] || ICON_MAP['product'];
         const Icon = config?.icon;
         return (
           <div
             key={item?.id}
+            onClick={() => handleItemClick(item)}
             className="flex items-start gap-3 py-3.5 border-b border-[var(--border)] last:border-0 hover:bg-[var(--muted)]/40 px-1 rounded transition-colors cursor-pointer"
           >
             <div className={`w-8 h-8 rounded-lg ${config?.iconBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
