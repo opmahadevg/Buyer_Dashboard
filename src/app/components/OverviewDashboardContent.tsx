@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { DollarSign, Package, TrendingUp, AlertTriangle, Clock, Truck, Calendar } from 'lucide-react';
@@ -7,6 +7,7 @@ import KpiCard from './KpiCard';
 import ActivityFeed from './ActivityFeed';
 import ChatButton from '@/components/ui/ChatButton';
 import { CHART_DATA } from './SpendChart';
+import { getStoredOrg, onOrgUpdated } from '@/lib/orgStore';
 
 const SpendChart = dynamic(() => import('./SpendChart'), { ssr: false });
 const QuotesByCategoryChart = dynamic(() => import('./QuotesByCategoryChart'), { ssr: false });
@@ -18,14 +19,13 @@ const TIME_RANGES = [
   { id: 'range-custom', label: 'Custom range' },
 ];
 
-const ROLES = ['buyer', 'admin', 'viewer'] as const;
-type Role = typeof ROLES[number];
-
-const ROLE_SUBTITLES: Record<Role, string> = {
-  buyer: "Sourcing performance for Honey's Org",
-  admin: "Admin view — all teams & spend for Honey's Org",
-  viewer: "Read-only view — Honey's Org",
-};
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'Good morning';
+  if (h >= 12 && h < 17) return 'Good afternoon';
+  if (h >= 17 && h < 21) return 'Good evening';
+  return 'Good night';
+}
 
 const kpiData = {
   'range-7d': {
@@ -57,13 +57,20 @@ const kpiData = {
 export default function OverviewDashboardContent() {
   const router = useRouter();
   const [activeRange, setActiveRange] = useState('range-30d');
-  const [activeRole, setActiveRole] = useState<Role>('buyer');
   const [showCustom, setShowCustom] = useState(false);
   const [chartRange, setChartRange] = useState('range-30d');
   const [chartLabel, setChartLabel] = useState(CHART_DATA['range-30d'].label);
   const [kpiKey, setKpiKey] = useState('range-30d');
+  const [orgName, setOrgName] = useState('');
+  const [greeting, setGreeting] = useState('');
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setOrgName(getStoredOrg().name);
+    setGreeting(getGreeting());
+    return onOrgUpdated(() => setOrgName(getStoredOrg().name));
+  }, []);
 
   const kpi = kpiData[activeRange as keyof typeof kpiData];
 
@@ -97,42 +104,27 @@ export default function OverviewDashboardContent() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Overview</h1>
+          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+            {greeting}{orgName ? `, ${orgName}` : ''}
+          </h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            {ROLE_SUBTITLES[activeRole]}
+            Here&apos;s what&apos;s happening with your sourcing today.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1">
-            {ROLES.map((role) => (
-              <button
-                key={`role-${role}`}
-                onClick={() => setActiveRole(role)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 capitalize ${
-                  activeRole === role
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
-                }`}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1">
-            {TIME_RANGES.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => handleRangeChange(r.id)}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
-                  activeRange === r.id
-                    ? 'bg-primary text-white shadow-sm'
-                    : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1">
+          {TIME_RANGES.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => handleRangeChange(r.id)}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+                activeRange === r.id
+                  ? 'bg-primary text-white shadow-sm'
+                  : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
         </div>
       </div>
 
