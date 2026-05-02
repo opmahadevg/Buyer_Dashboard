@@ -7,11 +7,12 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useChat } from '@/lib/hooks/useChat';
 import { getChatCompletion } from '@/lib/ai/chatCompletion';
 import ChatButton from '@/components/ui/ChatButton';
-import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ArrowUp, Loader2, CheckCircle, ChevronRight, Paperclip, UploadCloud, X, FileText } from 'lucide-react';
 import { saveProduct } from '@/lib/productStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-type Step = 'intro' | 'transition' | 'choose' | 'builder';
+type Step = 'intro' | 'transition' | 'choose' | 'upload' | 'builder';
+type RFQMethod = 'complete' | 'partial' | 'scratch';
 
 interface Message {
   id: string;
@@ -363,7 +364,7 @@ const RFQ_OPTIONS = [
   },
 ];
 
-function ChooseStep({ onNext }: { onNext: (method: string) => void }) {
+function ChooseStep({ onNext }: { onNext: (method: RFQMethod) => void }) {
   return (
     <div className="relative min-h-screen bg-white">
       <div className="absolute top-6 left-8">
@@ -379,7 +380,7 @@ function ChooseStep({ onNext }: { onNext: (method: string) => void }) {
           {RFQ_OPTIONS.map((opt) => (
             <button
               key={opt.id}
-              onClick={() => onNext(opt.id)}
+              onClick={() => onNext(opt.id as RFQMethod)}
               className="w-full flex items-center gap-5 px-6 py-5 bg-[var(--muted)]/50 hover:bg-[var(--secondary)] border border-[var(--border)] hover:border-primary/30 rounded-xl transition-all duration-150 group text-left"
             >
               <div className="flex-shrink-0">{opt.icon}</div>
@@ -964,12 +965,190 @@ function deriveProductName(text: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+// ─── Step: Upload RFQ files ───────────────────────────────────────────────────
+function UploadStep({
+  method,
+  onBack,
+  onSkip,
+  onSubmit,
+}: {
+  method: RFQMethod;
+  onBack: () => void;
+  onSkip: () => void;
+  onSubmit: (files: File[]) => void;
+}) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const addFiles = (incoming: FileList | null) => {
+    if (!incoming) return;
+    const accepted = Array.from(incoming).filter((f) =>
+      /\.(pdf|doc|docx|png|jpg|jpeg|webp|gif)$/i.test(f.name)
+    );
+    setFiles((prev) => {
+      const existing = new Set(prev.map((f) => f.name));
+      return [...prev, ...accepted.filter((f) => !existing.has(f.name))];
+    });
+  };
+
+  const removeFile = (name: string) => setFiles((prev) => prev.filter((f) => f.name !== name));
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragging(false);
+    addFiles(e.dataTransfer.files);
+  };
+
+  const isPartial = method === 'partial';
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Back */}
+      <div className="px-8 pt-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors"
+        >
+          <span className="text-base">‹</span> Back
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-1 items-start gap-12 px-8 pt-10 max-w-5xl">
+        {/* Left text */}
+        <div className="flex-1 min-w-0 pt-2">
+          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-3 leading-tight">
+            {isPartial
+              ? 'Upload what you have'
+              : 'Great! Thanks for preparing your RFQ'}
+          </h1>
+          <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+            {isPartial
+              ? "Upload any existing specs, briefs, or reference images. We'll use AI to fill in the missing details."
+              : 'Upload your RFQ and other supporting files'}
+          </p>
+
+          {isPartial && (
+            <p className="text-xs text-[var(--muted-foreground)] mt-4 italic">
+              Don't have anything? Click "I don't have anything yet" to skip straight to the AI builder.
+            </p>
+          )}
+        </div>
+
+        {/* Upload zone */}
+        <div className="w-[420px] flex-shrink-0">
+          <div
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            className={`flex flex-col items-center justify-center gap-3 h-64 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-150 ${
+              dragging
+                ? 'border-primary bg-[var(--secondary)] scale-[1.01]'
+                : 'border-[var(--border)] bg-[var(--muted)]/40 hover:border-primary/50 hover:bg-[var(--secondary)]/50'
+            }`}
+          >
+            <div className="w-12 h-12 rounded-full bg-white border border-[var(--border)] flex items-center justify-center shadow-sm">
+              <UploadCloud size={22} className="text-[var(--muted-foreground)]" />
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[var(--foreground)]">Choose files to upload</p>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">We support PDF, DOC, DOCX, and images</p>
+            </div>
+            <input
+              ref={inputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.gif"
+              className="hidden"
+              onChange={(e) => addFiles(e.target.files)}
+            />
+          </div>
+
+          {/* File list */}
+          {files.length > 0 && (
+            <ul className="mt-3 space-y-1.5">
+              {files.map((f) => (
+                <li key={f.name} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-[var(--muted)]/50 border border-[var(--border)]">
+                  <FileText size={14} className="text-primary flex-shrink-0" />
+                  <span className="flex-1 text-xs text-[var(--foreground)] truncate">{f.name}</span>
+                  <span className="text-xs text-[var(--muted-foreground)] flex-shrink-0">{(f.size / 1024).toFixed(0)} KB</span>
+                  <button onClick={() => removeFile(f.name)} className="text-[var(--muted-foreground)] hover:text-red-500 transition-colors flex-shrink-0">
+                    <X size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="flex items-center justify-between px-8 pb-8 mt-auto pt-6">
+        <button
+          onClick={onSkip}
+          className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+        >
+          <span className="text-base">‹</span> I don&apos;t have anything yet
+        </button>
+        <button
+          onClick={() => onSubmit(files)}
+          className="px-7 py-2.5 rounded-full bg-[var(--muted)]/60 hover:bg-[var(--muted)] text-sm font-semibold text-[var(--foreground)] border border-[var(--border)] hover:border-primary/30 transition-all duration-150 disabled:opacity-40"
+        >
+          Submit
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main orchestrator ────────────────────────────────────────────────────────
 export default function NewProductFlow() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>('intro');
   const [productText, setProductText] = useState('');
+  const [rfqMethod, setRfqMethod] = useState<RFQMethod>('scratch');
 
   const productName = deriveProductName(productText);
+
+  const handleChoose = (method: RFQMethod) => {
+    setRfqMethod(method);
+    if (method === 'scratch') {
+      setStep('builder');
+    } else {
+      // complete or partial → show upload page
+      setStep('upload');
+    }
+  };
+
+  const handleUploadSubmit = (files: File[]) => {
+    if (rfqMethod === 'complete') {
+      // Save a stub product and go to products list
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const title = deriveProductName(productText) || 'New Product';
+      saveProduct({
+        id: `prod-rfq-${Date.now()}`,
+        name: title,
+        category: '',
+        description: productText,
+        moq: '',
+        specifications: [],
+        manufacturingNotes: [],
+        status: 'No Updates',
+        stage: 'Quoting',
+        updated: dateStr,
+        image: '',
+        imageAlt: `${title} product`,
+      });
+      toast.success('RFQ submitted! Product added to your list.');
+      setTimeout(() => router.push('/products-list'), 1000);
+    } else {
+      // partial → go to AI builder
+      setStep('builder');
+    }
+  };
 
   if (step === 'intro') {
     return <IntroStep onNext={(text) => { setProductText(text); setStep('transition'); }} />;
@@ -978,7 +1157,24 @@ export default function NewProductFlow() {
     return <TransitionStep productText={productText} onNext={() => setStep('choose')} />;
   }
   if (step === 'choose') {
-    return <ChooseStep onNext={() => setStep('builder')} />;
+    return <ChooseStep onNext={handleChoose} />;
+  }
+  if (step === 'upload') {
+    return (
+      <UploadStep
+        method={rfqMethod}
+        onBack={() => setStep('choose')}
+        onSkip={() => {
+          if (rfqMethod === 'complete') {
+            setStep('choose');
+          } else {
+            // partial: skip upload → go straight to AI builder
+            setStep('builder');
+          }
+        }}
+        onSubmit={handleUploadSubmit}
+      />
+    );
   }
   return <BuilderStep productText={productText} productName={productName} />;
 }
