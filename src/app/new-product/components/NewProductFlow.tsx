@@ -394,17 +394,8 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
     '1': 'in-progress', '2': 'pending', '3': 'pending', '4': 'pending', '5': 'pending',
   });
   const [activeTask, setActiveTask] = useState('1');
-  const [supplierCount, setSupplierCount] = useState(0);
 
   useEffect(() => {
-    // Animate supplier counter 0 → 165
-    let count = 0;
-    const counter = setInterval(() => {
-      count = Math.min(count + 5, 165);
-      setSupplierCount(count);
-      if (count >= 165) clearInterval(counter);
-    }, 45);
-
     // Task sequence — each task takes ~900ms
     const advance = (id: string, nextId: string | null, delay: number) =>
       setTimeout(() => {
@@ -419,7 +410,7 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
     const t5 = advance('5', null, 4300);
     const t6 = setTimeout(onNext, 4700);
 
-    return () => { clearInterval(counter); [t1, t2, t3, t4, t5, t6].forEach(clearTimeout); };
+    return () => { [t1, t2, t3, t4, t5, t6].forEach(clearTimeout); };
   }, [onNext]);
 
   return (
@@ -453,15 +444,7 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
             {productName}
           </h2>
 
-          <div className="flex items-baseline gap-2 mb-2">
-            <motion.span
-              className="text-6xl font-bold text-[var(--foreground)] tabular-nums"
-              key={supplierCount}
-            >
-              {supplierCount}
-            </motion.span>
-            <span className="text-lg text-[var(--muted-foreground)] font-medium">Suppliers Matched</span>
-          </div>
+          <p className="text-2xl font-bold text-[var(--foreground)] mb-1">Suppliers Matched</p>
           <p className="text-xs text-[var(--muted-foreground)]">from our verified global network</p>
         </motion.div>
       </div>
