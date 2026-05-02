@@ -288,13 +288,13 @@ export default function ProductDetailContent() {
         </div>
       </div>
 
-      {/* Tab content — show spinner only when no static/stored product available */}
+      {/* Tab content — keyed to trigger fade-in on tab switch */}
       {dbLoading && !staticProduct && !storedProduct ? (
         <div className="flex items-center justify-center h-40">
           <Loader2 size={24} className="animate-spin text-primary" />
         </div>
       ) : (
-        <>
+        <div key={activeTab} className="animate-fade-in">
           {activeTab === 'updates' && (
             <UpdatesTab tasks={product?.updates?.tasks ?? []} updates={product?.updates?.updates ?? []} />
           )}
@@ -306,16 +306,16 @@ export default function ProductDetailContent() {
             <OrdersTab orders={product?.orders?.orders ?? []} steps={product?.orders?.steps ?? []} />
           )}
           {activeTab === 'files' && <FilesTab files={product?.files ?? []} />}
-        </>
+        </div>
       )}
 
       <ChatButton />
 
       {/* ── Product Specs Slide-over Panel ── */}
       {specsOpen && (
-        <div className="fixed inset-0 z-50 flex">
+        <div className="fixed inset-0 z-50 flex animate-fade-in">
           <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={() => setSpecsOpen(false)} />
-          <div className="w-full max-w-lg bg-[var(--background)] shadow-2xl flex flex-col h-full overflow-hidden">
+          <div className="w-full max-w-lg bg-[var(--background)] shadow-2xl flex flex-col h-full overflow-hidden animate-slide-in-right">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)] bg-[var(--background)]">
               <div>
                 <h2 className="text-base font-bold text-[var(--foreground)]">Product RFQ Specs</h2>
@@ -424,9 +424,9 @@ export default function ProductDetailContent() {
 
       {/* ── Update RFQ Modal ── */}
       {editOpen && editForm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 animate-fade-in">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditOpen(false)} />
-          <div className="relative bg-[var(--background)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="relative bg-[var(--background)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-scale-in">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
               <div>
                 <h2 className="text-base font-bold text-[var(--foreground)]">Update RFQ</h2>

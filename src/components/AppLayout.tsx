@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import AnnouncementBanner from './AnnouncementBanner';
+import PageTransition from './PageTransition';
 import { Toaster } from 'sonner';
 import { useRealtimeNotifications } from '@/lib/hooks/useRealtimeNotifications';
 import { userProfileService } from '@/lib/services/dbService';
@@ -28,7 +29,6 @@ export default function AppLayout({ children }: AppLayoutProps) {
     loadProfile();
   }, []);
 
-  // Enable real-time notifications for the org
   useRealtimeNotifications({ organizationId, enabled: true });
 
   return (
@@ -36,12 +36,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
       <Toaster position="bottom-right" richColors />
       <Sidebar open={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />
       <div
-        className="flex flex-col flex-1 overflow-hidden transition-all duration-300"
+        className="flex flex-col flex-1 overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]"
         style={{ marginLeft: sidebarOpen ? '240px' : '64px' }}
       >
         <AnnouncementBanner message="Labor Day Notice: Asia production pauses May 1–6. Expect slower responses in this period." />
         <main className="flex-1 overflow-y-auto">
-          {children}
+          <PageTransition>
+            {children}
+          </PageTransition>
         </main>
       </div>
     </div>

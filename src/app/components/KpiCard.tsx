@@ -29,15 +29,17 @@ export default function KpiCard({
 
   return (
     <div
-      className={`bg-white rounded-xl border p-5 flex flex-col gap-3 transition-shadow hover:shadow-md ${
-        alert ? 'border-red-300 bg-red-50/30' : 'border-[var(--border)]'
-      }`}
+      className={`bg-white rounded-xl border p-5 flex flex-col gap-3 cursor-default
+        transition-all duration-200 ease-out
+        hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/5
+        active:translate-y-0 active:shadow-md
+        ${alert ? 'border-red-300 bg-red-50/30' : 'border-[var(--border)]'}`}
     >
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
           {label}
         </p>
-        <div className={`w-9 h-9 rounded-lg ${iconBg} flex items-center justify-center`}>
+        <div className={`w-9 h-9 rounded-lg ${iconBg} flex items-center justify-center transition-transform duration-200 group-hover:scale-110`}>
           {icon}
         </div>
       </div>
