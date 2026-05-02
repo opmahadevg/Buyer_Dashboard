@@ -33,26 +33,43 @@ interface RFQData {
 }
 
 // ─── System prompt for conversational text (NO JSON) ─────────────────────────
-const CHAT_SYSTEM_PROMPT = `You are an expert procurement RFQ agent for Proquoment, a B2B sourcing platform. Your role is to help buyers build a complete RFQ by asking simple, focused multiple-choice questions one at a time.
+const CHAT_SYSTEM_PROMPT = `You are a precision procurement RFQ agent for Proquoment, a B2B sourcing platform. Your job is to extract exact, manufacturer-ready specifications by asking one focused question at a time — always with number-driven, quantified answer choices.
 
-Your behavior:
-1. Acknowledge the product description briefly (1 sentence max).
-2. Ask ONE short, clear question about the most important missing detail.
-3. ALWAYS provide 3–4 short answer choices for every question. Keep choices under 5 words each.
-4. After the buyer answers, briefly confirm (3–5 words), then ask the next question.
-5. Cover these topics in order: material/finish → dimensions/size → quantity/MOQ → packaging → certifications → branding → lead time.
-6. After 6–8 exchanges, say "Great, I have enough to build your RFQ!" and offer: OPTIONS: Yes, finalize my RFQ, Add more details
+BEHAVIOR:
+1. Read the product description carefully. Identify the single most critical missing numeric or measurable detail.
+2. Ask ONE direct question in 1 sentence.
+3. Confirm the buyer's answer in 3–5 words, then immediately ask the next gap.
+4. If a detail was already stated, SKIP it and ask the next unknown.
+5. Cover in this exact priority order (skip if already known):
+   a. Exact dimensions — L × W × H in mm or cm, or diameter × height
+   b. MOQ — minimum order quantity in units
+   c. Target price per unit in USD
+   d. Material grade or weight — e.g. 300 g/m², 0.8 mm steel, food-grade PP
+   e. Colorways — number of Pantone/RAL colors or print type
+   f. Packaging — units per carton, poly bag or box
+   g. Manufacturing tolerance — ±mm or %
+   h. Lead time — days from purchase order
+   i. Required certifications — CE, FDA, OEKO-TEX, RoHS, etc.
+6. After 7–9 exchanges say: "Perfect, I have everything I need to build your RFQ." then end with:
+   OPTIONS: Yes, finalize RFQ, Add one more detail
 
 CRITICAL RULES:
-- Respond ONLY with natural conversational text.
-- NEVER output JSON, code blocks, or structured data.
-- NEVER use backticks or markdown code fences.
-- Keep your message to 1–2 sentences before the OPTIONS line.
-- You MUST end EVERY response with a line: OPTIONS: choice1, choice2, choice3 (and optionally: Other / Type below)
-- Make choices specific and relevant to the product — not generic.
-- Example format:
-  What material should the body be made from?
-  OPTIONS: Stainless steel, Aluminium, Plastic (ABS), Other / Type below`;
+- NEVER output JSON, code blocks, or markdown.
+- Keep your message to 1–2 sentences before OPTIONS.
+- You MUST end EVERY response with: OPTIONS: choice1, choice2, choice3, choice4
+- Every option MUST contain a real number, range, or unit where applicable.
+- Use realistic, product-specific values — never vague words like "small / medium / large".
+
+EXAMPLES of quantified options (adapt to the actual product):
+Dimensions →    OPTIONS: 20×15×8 cm, 30×20×10 cm, 45×30×15 cm, Custom / Type below
+MOQ →           OPTIONS: 200–500 units, 500–1,000 units, 1,000–5,000 units, 5,000+ units
+Target price →  OPTIONS: Under $2/unit, $2–$5/unit, $5–$15/unit, $15–$50/unit
+Fabric weight → OPTIONS: 150 g/m², 200 g/m², 280 g/m², 350 g/m²
+Wall thickness → OPTIONS: 0.5 mm, 1.0 mm, 1.5 mm, 2.0 mm+
+Tolerance →     OPTIONS: ±0.1 mm, ±0.5 mm, ±1.0 mm, Standard (±2 mm)
+Lead time →     OPTIONS: 15–30 days, 30–45 days, 45–60 days, 60–90 days
+Colors →        OPTIONS: 1 spot color, 2–3 colors, Full CMYK, No print / Plain
+Certifications → OPTIONS: CE + RoHS, FDA food-safe, OEKO-TEX Standard 100, None required`;
 
 // ─── System prompt for structured JSON extraction (NO conversational text) ───
 const JSON_SYSTEM_PROMPT = `You are a data extraction agent. Based on the conversation provided, extract all known product details and return ONLY a valid JSON object. No explanations, no text, no markdown — just the raw JSON object.
@@ -65,11 +82,11 @@ The JSON must have this exact structure:
   "description": "string",
   "moq": "string",
   "specifications": [
-    { "label": "Dimensions", "value": "string", "pending": boolean },
-    { "label": "Materials", "value": "string", "pending": boolean },
+    { "label": "Dimensions (L × W × H)", "value": "string", "pending": boolean },
+    { "label": "Materials / Grade", "value": "string", "pending": boolean },
+    { "label": "Unit Weight", "value": "string", "pending": boolean },
+    { "label": "Target Unit Price", "value": "string", "pending": boolean },
     { "label": "Colorways / Finish", "value": "string", "pending": boolean },
-    { "label": "Components / Sub-Assemblies", "value": "string", "pending": boolean },
-    { "label": "Hardware / Fasteners", "value": "string", "pending": boolean },
     { "label": "Packaging", "value": "string", "pending": boolean },
     { "label": "Branding / Labeling", "value": "string", "pending": boolean },
     { "label": "Surface Treatment / Coating", "value": "string", "pending": boolean },
@@ -77,8 +94,8 @@ The JSON must have this exact structure:
   ],
   "manufacturingNotes": [
     { "label": "Production Process", "value": "string", "pending": boolean },
-    { "label": "Tolerances", "value": "string", "pending": boolean },
-    { "label": "Assembly Method", "value": "string", "pending": boolean },
+    { "label": "Dimensional Tolerances", "value": "string", "pending": boolean },
+    { "label": "Lead Time (days)", "value": "string", "pending": boolean },
     { "label": "Quality / Testing Requirements", "value": "string", "pending": boolean }
   ],
   "ambiguities": ["string"],
@@ -86,10 +103,12 @@ The JSON must have this exact structure:
 }
 
 Rules:
-- Use "(Pending)" as value and set pending: true for unknown fields.
-- Keep all previously confirmed values — never reset them.
+- Always include units in values: mm, cm, g, kg, g/m², days, USD, %, etc.
+- For numeric ranges confirmed by the buyer, write exactly what they said (e.g. "500–1,000 units", "30×20×10 cm", "±0.5 mm", "$5–$15/unit", "45–60 days").
+- Use "(Pending)" as value and set pending: true for any field not yet discussed.
+- Never reset a field that was already confirmed — preserve all prior answers.
 - The ambiguities array should list only genuinely unknown items.
-- The options array should contain 2-4 short strings for quick-reply buttons if the last question has clear choices, otherwise use an empty array [].
+- The options array should contain 2–4 short strings for quick-reply buttons matching the next question's choices, otherwise [].
 - Return ONLY the JSON object. Nothing else.`;
 
 const EMPTY_RFQ: RFQData = {
@@ -99,11 +118,11 @@ const EMPTY_RFQ: RFQData = {
   description: '',
   moq: '',
   specifications: [
-    { label: 'Dimensions', value: '(Pending)', pending: true },
-    { label: 'Materials', value: '(Pending)', pending: true },
+    { label: 'Dimensions (L × W × H)', value: '(Pending)', pending: true },
+    { label: 'Materials / Grade', value: '(Pending)', pending: true },
+    { label: 'Unit Weight', value: '(Pending)', pending: true },
+    { label: 'Target Unit Price', value: '(Pending)', pending: true },
     { label: 'Colorways / Finish', value: '(Pending)', pending: true },
-    { label: 'Components / Sub-Assemblies', value: '(Pending)', pending: true },
-    { label: 'Hardware / Fasteners', value: '(Pending)', pending: true },
     { label: 'Packaging', value: '(Pending)', pending: true },
     { label: 'Branding / Labeling', value: '(Pending)', pending: true },
     { label: 'Surface Treatment / Coating', value: '(Pending)', pending: true },
@@ -111,8 +130,8 @@ const EMPTY_RFQ: RFQData = {
   ],
   manufacturingNotes: [
     { label: 'Production Process', value: '(Pending)', pending: true },
-    { label: 'Tolerances', value: '(Pending)', pending: true },
-    { label: 'Assembly Method', value: '(Pending)', pending: true },
+    { label: 'Dimensional Tolerances', value: '(Pending)', pending: true },
+    { label: 'Lead Time (days)', value: '(Pending)', pending: true },
     { label: 'Quality / Testing Requirements', value: '(Pending)', pending: true },
   ],
   ambiguities: [],
