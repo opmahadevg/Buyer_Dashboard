@@ -460,7 +460,7 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
             >
               {supplierCount}
             </motion.span>
-            <span className="text-lg text-[var(--muted-foreground)] font-medium">suppliers matched</span>
+            <span className="text-lg text-[var(--muted-foreground)] font-medium">Suppliers Matched</span>
           </div>
           <p className="text-xs text-[var(--muted-foreground)]">from our verified global network</p>
         </motion.div>
