@@ -90,10 +90,7 @@ import { createBrowserClient } from '@supabase/ssr';
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!url || !key) {
-      if (typeof window === 'undefined') {
-        return null as any;
-      }
-      throw new Error('Supabase URL and Anon Key must be set in environment variables.');
+      return null as any;
     }
 
     return createBrowserClient(
