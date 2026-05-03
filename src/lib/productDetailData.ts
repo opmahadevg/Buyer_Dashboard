@@ -114,7 +114,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
       {
         id: 'task-001',
         type: 'Action',
-        title: 'Book A Call - Start Sourcing with Cavela',
+        title: 'Book A Call - Start Sourcing with Proquoment',
         description:
         "We'd be glad to discuss your Black Puffed Jackets project. Please book a call and we'll walk through the next steps together.",
         date: 'Apr 20, 2026',
@@ -245,7 +245,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
       {
         id: 'task-002',
         type: 'Action',
-        title: 'Book A Call - Start Sourcing with Cavela',
+        title: 'Book A Call - Start Sourcing with Proquoment',
         description:
         "We'd be glad to discuss your Cotton AC Blankets Bulk Pack 2000 Pieces project. Please book a call and we'll walk through the next steps together.",
         date: 'Apr 20, 2026',
@@ -270,7 +270,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         '142 suppliers have been contacted regarding your Cotton AC Blankets bulk order. We expect initial responses within 3–5 business days.',
         date: 'Apr 15, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 0
       }]
 
@@ -421,7 +421,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         'We have received 3 competitive quotes for your King Size Plain White Cotton Bed Sheets. Prices range from $4.20 to $6.80 per unit at 500-piece MOQ.',
         date: 'Mar 15, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 0
       },
       {
@@ -430,7 +430,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         'All suppliers have confirmed 300 TC (thread count) availability. Two suppliers also offer 400 TC at a 12% price premium.',
         date: 'Mar 10, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 3
       }]
 
@@ -578,7 +578,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
       {
         id: 'task-005',
         type: 'Action',
-        title: 'Book A Call - Start Sourcing with Cavela',
+        title: 'Book A Call - Start Sourcing with Proquoment',
         description:
         "We'd be glad to discuss your Organic Cotton Tote Bags 500 pcs project. Please book a call and we'll walk through the next steps together.",
         date: 'Mar 12, 2026',
@@ -722,7 +722,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         '78 spice exporters and agricultural suppliers have been contacted for your 2-tonne Green Cardamom order. Responses expected within 5–7 business days.',
         date: 'Mar 16, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 0
       },
       {
@@ -731,7 +731,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         'Current cardamom harvest season in Kerala runs through April. Pricing may be more favorable if the order is placed before May 1st.',
         date: 'Mar 14, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 2
       }]
 
@@ -857,7 +857,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
       {
         id: 'task-007',
         type: 'Action',
-        title: 'Book A Call - Start Sourcing with Cavela',
+        title: 'Book A Call - Start Sourcing with Proquoment',
         description:
         "We'd be glad to discuss your Us Polo Shirts Bulk Order 50000 Units project. Please book a call and we'll walk through the next steps together.",
         date: 'Apr 25, 2026',
@@ -882,7 +882,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         'Your RFQ for 50,000 units of US Polo Shirts is under review by the sourcing team. We are identifying the best-matched suppliers for your requirements.',
         date: 'Apr 22, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 0
       }]
 
@@ -1012,7 +1012,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         '95 electronics and cable manufacturers have been contacted for your Laptop Charging Cable order. Initial responses expected within 3–5 business days.',
         date: 'Apr 26, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 0
       },
       {
@@ -1021,7 +1021,7 @@ export const ALL_PRODUCT_DETAIL_DATA: Record<string, ProductDetailData> = {
         description:
         'Suppliers have been informed of CE, RoHS, and UL certification requirements. 62 out of 95 suppliers confirmed they hold the required certifications.',
         date: 'Apr 24, 2026',
-        supplier: 'Cavela Team',
+        supplier: 'Proquoment Team',
         replies: 1
       }]
 
