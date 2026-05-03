@@ -84,6 +84,15 @@ Got it, high-fire stoneware it is.
 OPTIONS: 24 cm diameter, 26 cm diameter, 28 cm diameter, Custom / Type below`;
 
 // ─── System prompt for structured JSON extraction (NO conversational text) ───
+// Keep the last N history messages to avoid token-limit errors across all providers.
+// System prompt is always prepended separately, so this only trims conversation turns.
+const MAX_HISTORY_MESSAGES = 10;
+function trimHistory(history: { role: string; content: string }[]) {
+  return history.length > MAX_HISTORY_MESSAGES
+    ? history.slice(history.length - MAX_HISTORY_MESSAGES)
+    : history;
+}
+
 const JSON_SYSTEM_PROMPT = `You are a data extraction agent. Based on the conversation provided, extract all known product details and return ONLY a valid JSON object. No explanations, no text, no markdown — just the raw JSON object.
 
 The JSON must have this exact structure:
@@ -948,7 +957,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
 
         const jsonMessages = [
           { role: 'system', content: JSON_SYSTEM_PROMPT },
-          ...history.map((h) => ({ role: h.role, content: h.content })),
+          ...trimHistory(history).map((h) => ({ role: h.role, content: h.content })),
           { role: 'user', content: 'Extract the current RFQ data from the conversation above as JSON.' },
         ];
 
@@ -1022,7 +1031,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
     setMessages((prev) => [...prev, { id: aiMsgId, role: 'ai', text: '', isStreaming: true }]);
 
     sendStreamingMessage(
-      [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...initialHistory],
+      [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...trimHistory(initialHistory)],
       { temperature: 0.7, max_tokens: 1024 }
     );
   }, [initialized, productText, sendStreamingMessage]);
@@ -1046,7 +1055,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
     setMessages((prev) => [...prev, { id: aiMsgId, role: 'ai', text: '', isStreaming: true }]);
 
     sendStreamingMessage(
-      [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...newHistory],
+      [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...trimHistory(newHistory)],
       { temperature: 0.7, max_tokens: 1024 }
     );
   };
