@@ -103,8 +103,8 @@ export default function AuthContent() {
         </div>
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-lg">P</span>
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+              <img src="/proquoment-logo-dark.png" alt="Proquoment" className="w-full h-full object-cover" />
             </div>
             <span className="text-white font-bold text-xl">Proquoment</span>
           </div>
