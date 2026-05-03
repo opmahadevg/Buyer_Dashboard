@@ -21,7 +21,15 @@ export const metadata: Metadata = {
   description:
     'Proquoment helps procurement buyers manage RFQs, compare supplier quotes, and track bulk orders from one unified dashboard.',
   icons: {
-    icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png' }],
+    other: [
+      { rel: 'manifest', url: '/site.webmanifest' },
+    ],
   },
 };
 
