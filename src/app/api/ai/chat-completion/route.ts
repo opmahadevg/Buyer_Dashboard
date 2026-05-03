@@ -185,11 +185,15 @@ async function handleAutoFallback(
       errors.push(errMsg);
       console.warn(`[AI Fallback] ✗ ${errMsg}`);
 
-      if (!RETRIABLE_STATUSES.has(res.status)) {
-        // Hard error (e.g. 400 bad request) — don't try next provider with same payload
+      // A 400 from GROQ often means quota/token exhaustion — check the body before giving up
+      const isQuotaOrTokenError = /token|quota|limit|exceed|too.large|context|capacity|overload/i.test(text);
+      const isRetriable = RETRIABLE_STATUSES.has(res.status) || (res.status === 400 && isQuotaOrTokenError);
+
+      if (!isRetriable) {
+        // Genuine bad request (wrong params) — retrying another provider won't help
         break;
       }
-      // Retriable (429/503/500) — continue to next provider
+      // Retriable — continue to next provider
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${entry.provider} threw: ${msg}`);
