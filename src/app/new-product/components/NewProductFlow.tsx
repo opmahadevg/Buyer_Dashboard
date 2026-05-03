@@ -254,56 +254,56 @@ function IntroStep({ onNext }: { onNext: (product: string) => void }) {
   const [value, setValue] = useState('');
 
   return (
-    <div className="relative min-h-screen bg-white overflow-hidden flex">
+    <div className="relative min-h-screen bg-white overflow-hidden flex flex-col md:flex-row">
       {/* Back link */}
-      <div className="absolute top-6 left-8 z-10">
+      <div className="absolute top-4 left-4 md:top-6 md:left-8 z-10">
         <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors">
-          <span className="text-base">‹</span> Back to Home
+          <span className="text-base">‹</span> Back
         </Link>
       </div>
 
       {/* Left — content */}
-      <div className="flex flex-col justify-center min-h-screen px-14 w-[54%] min-w-0">
-        <h1 className="text-4xl font-bold text-[var(--foreground)] mb-3 leading-tight">
+      <div className="flex flex-col justify-center px-5 md:px-14 w-full md:w-[54%] min-w-0 pt-16 pb-8 md:pt-0 md:pb-0 md:min-h-screen">
+        <h1 className="text-2xl md:text-4xl font-bold text-[var(--foreground)] mb-2 md:mb-3 leading-tight">
           What product are we sourcing today?
         </h1>
-        <p className="text-sm text-[var(--muted-foreground)] mb-6">Pick a category or describe your product below.</p>
+        <p className="text-sm text-[var(--muted-foreground)] mb-4 md:mb-6">Pick a category or describe your product below.</p>
 
         {/* Category chips */}
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-4 md:mb-5">
           {CATEGORY_CHIPS.map((chip) => (
             <button
               key={chip.value}
               onClick={() => setValue((prev) => prev ? prev : chip.value)}
-              className="px-3.5 py-2 text-sm border border-[var(--border)] rounded-full hover:border-primary hover:bg-[var(--secondary)] hover:text-primary transition-all duration-150 text-[var(--foreground)] bg-white"
+              className="px-3 md:px-3.5 py-1.5 md:py-2 text-xs md:text-sm border border-[var(--border)] rounded-full hover:border-primary hover:bg-[var(--secondary)] hover:text-primary transition-all duration-150 text-[var(--foreground)] bg-white"
             >
               {chip.label}
             </button>
           ))}
         </div>
 
-        <div className="bg-white border border-[var(--border)] rounded-2xl shadow-sm p-6 mb-4 focus-within:border-primary/50 transition-colors">
+        <div className="bg-white border border-[var(--border)] rounded-2xl shadow-sm p-4 md:p-6 mb-3 md:mb-4 focus-within:border-primary/50 transition-colors">
           <textarea
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="e.g. Ceramic plate, 26 cm diameter, high-fire stoneware, glossy white food-safe glaze with cobalt blue rim. 2000 units."
-            className="w-full h-28 resize-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none bg-transparent leading-relaxed"
+            className="w-full h-24 md:h-28 resize-none text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none bg-transparent leading-relaxed"
           />
         </div>
-        <p className="text-xs text-[var(--muted-foreground)] italic mb-7">
+        <p className="text-xs text-[var(--muted-foreground)] italic mb-5 md:mb-7">
           More detail = better manufacturer matches. Don&apos;t worry — the AI will ask follow-up questions.
         </p>
         <button
           onClick={() => value.trim() && onNext(value.trim())}
           disabled={!value.trim()}
-          className="flex items-center gap-2 px-7 py-3.5 bg-primary text-white rounded-full text-base font-semibold w-fit hover:bg-[#2e29c4] active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-6 md:px-7 py-3 md:py-3.5 bg-primary text-white rounded-full text-sm md:text-base font-semibold w-fit hover:bg-[#2e29c4] active:scale-95 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Start <ArrowRight size={18} />
         </button>
       </div>
 
-      {/* Right — interactive globe */}
-      <div className="flex-1 flex flex-col items-center justify-center pr-8 pl-4 py-12">
+      {/* Right — interactive globe (hidden on mobile) */}
+      <div className="hidden md:flex flex-1 flex-col items-center justify-center pr-8 pl-4 py-12">
         <p className="text-[11px] font-semibold text-[var(--muted-foreground)] uppercase tracking-widest mb-4">
           Verified manufacturers
         </p>
@@ -414,21 +414,21 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
   }, [onNext]);
 
   return (
-    <div className="relative min-h-screen bg-white flex overflow-hidden">
-      <div className="absolute top-6 left-8 z-10">
+    <div className="relative min-h-screen bg-white flex flex-col md:flex-row overflow-hidden">
+      <div className="absolute top-4 left-4 md:top-6 md:left-8 z-10">
         <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors">
-          <span className="text-base">‹</span> Back to Home
+          <span className="text-base">‹</span> Back
         </Link>
       </div>
 
       {/* Left info panel */}
-      <div className="flex flex-col justify-center px-16 w-[42%] min-h-screen">
+      <div className="flex flex-col justify-center px-5 md:px-16 w-full md:w-[42%] pt-16 pb-6 md:pt-0 md:pb-0 md:min-h-screen">
         <motion.div
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: [0.2, 0.65, 0.3, 0.9] }}
         >
-          <div className="flex items-center gap-2 mb-7">
+          <div className="flex items-center gap-2 mb-5 md:mb-7">
             <motion.span
               className="w-2 h-2 rounded-full bg-primary"
               animate={{ opacity: [1, 0.3, 1] }}
@@ -437,20 +437,20 @@ function TransitionStep({ productText, onNext }: { productText: string; onNext: 
             <span className="text-xs font-semibold text-primary uppercase tracking-widest">Proquoment AI Agent</span>
           </div>
 
-          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-1 leading-tight">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--foreground)] mb-1 leading-tight">
             Finding manufacturers
           </h1>
-          <h2 className="text-3xl font-bold text-primary mb-8 leading-tight truncate max-w-xs">
+          <h2 className="text-2xl md:text-3xl font-bold text-primary mb-5 md:mb-8 leading-tight truncate max-w-xs">
             {productName}
           </h2>
 
-          <p className="text-2xl font-bold text-[var(--foreground)] mb-1">Suppliers Matched</p>
+          <p className="text-xl md:text-2xl font-bold text-[var(--foreground)] mb-1">Suppliers Matched</p>
           <p className="text-xs text-[var(--muted-foreground)]">from our verified global network</p>
         </motion.div>
       </div>
 
       {/* Right: Agent plan card */}
-      <div className="flex-1 flex items-center justify-center px-10 py-20">
+      <div className="flex-1 flex items-center justify-center px-5 md:px-10 py-8 md:py-20">
         <motion.div
           className="w-full max-w-sm bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden"
           initial={{ opacity: 0, y: 16 }}
@@ -594,21 +594,21 @@ const RFQ_OPTIONS = [
 function ChooseStep({ onNext }: { onNext: (method: RFQMethod) => void }) {
   return (
     <div className="relative min-h-screen bg-white">
-      <div className="absolute top-6 left-8">
+      <div className="absolute top-4 left-4 md:top-6 md:left-8">
         <Link href="/products-list" className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors">
-          <span className="text-base">‹</span> Back to Home
+          <span className="text-base">‹</span> Back
         </Link>
       </div>
-      <div className="flex flex-col justify-center min-h-screen px-16 max-w-3xl">
-        <h1 className="text-4xl font-bold text-[var(--foreground)] mb-10">
+      <div className="flex flex-col justify-center min-h-screen px-5 md:px-16 max-w-3xl pt-16 md:pt-0">
+        <h1 className="text-2xl md:text-4xl font-bold text-[var(--foreground)] mb-6 md:mb-10">
           Choose how you want to build your RFQ
         </h1>
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {RFQ_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => onNext(opt.id as RFQMethod)}
-              className="w-full flex items-center gap-5 px-6 py-5 bg-[var(--muted)]/50 hover:bg-[var(--secondary)] border border-[var(--border)] hover:border-primary/30 rounded-xl transition-all duration-150 group text-left"
+              className="w-full flex items-center gap-4 md:gap-5 px-4 md:px-6 py-4 md:py-5 bg-[var(--muted)]/50 hover:bg-[var(--secondary)] border border-[var(--border)] hover:border-primary/30 rounded-xl transition-all duration-150 group text-left"
             >
               <div className="flex-shrink-0">{opt.icon}</div>
               <div className="flex-1 min-w-0">
@@ -1083,12 +1083,12 @@ function BuilderStep({ productText, productName }: { productText: string; produc
       <Toaster position="top-right" toastOptions={{ style: { fontSize: '13px', borderRadius: '10px', fontFamily: 'inherit' } }} />
 
       {/* ── Top bar ── */}
-      <div className="flex items-center gap-4 px-6 py-3 border-b border-gray-100 bg-white z-10 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 md:px-6 py-3 border-b border-gray-100 bg-white z-10 flex-shrink-0">
         <Link
           href="/products-list"
-          className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#0D0D14] transition-colors whitespace-nowrap"
+          className="flex items-center gap-1 text-sm text-gray-400 hover:text-[#0D0D14] transition-colors whitespace-nowrap"
         >
-          <span className="text-base leading-none">‹</span> Back to Home
+          <span className="text-base leading-none">‹</span> <span className="hidden sm:inline">Back</span>
         </Link>
         <div className="flex-1 min-w-0">
           <input
@@ -1110,12 +1110,12 @@ function BuilderStep({ productText, productName }: { productText: string; produc
       {/* ── Body ── */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Left: Chat ── */}
-        <div className={`flex flex-col transition-all duration-300 ${panelOpen ? 'w-[56%]' : 'w-full'}`}>
+        {/* ── Left: Chat (always full width on mobile) ── */}
+        <div className={`flex flex-col transition-all duration-300 ${panelOpen ? 'hidden md:flex md:w-[56%]' : 'w-full'} w-full`}>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-8 pt-8 pb-4">
+            <div className="max-w-2xl mx-auto px-4 md:px-8 pt-5 md:pt-8 pb-4">
               {messages.map((msg) => (
                 <MessageBubble
                   key={msg.id}
@@ -1133,7 +1133,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
 
           {/* ── Input area ── */}
           <div className="flex-shrink-0 border-t border-gray-100 bg-white">
-            <div className="max-w-2xl mx-auto px-8 py-4">
+            <div className="max-w-2xl mx-auto px-3 md:px-8 py-3 md:py-4">
               <div className="border border-gray-200 rounded-2xl bg-white focus-within:border-gray-400 transition-colors duration-150 overflow-hidden">
                 <textarea
                   ref={inputRef}
@@ -1152,7 +1152,7 @@ function BuilderStep({ productText, productName }: { productText: string; produc
                 />
                 <div className="flex items-center justify-between px-4 pb-3 pt-1">
                   <button className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#0D0D14] transition-colors">
-                    <Paperclip size={12} /> Add references
+                    <Paperclip size={12} /> <span className="hidden sm:inline">Add references</span>
                   </button>
                   <button
                     onClick={() => handleSend(inputValue)}
@@ -1232,7 +1232,7 @@ function UploadStep({
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Back */}
-      <div className="px-8 pt-6">
+      <div className="px-4 md:px-8 pt-4 md:pt-6">
         <button
           onClick={onBack}
           className="flex items-center gap-1.5 text-sm text-[var(--foreground)] hover:text-primary transition-colors"
@@ -1242,10 +1242,10 @@ function UploadStep({
       </div>
 
       {/* Content */}
-      <div className="flex flex-1 items-start gap-12 px-8 pt-10 max-w-5xl">
+      <div className="flex flex-col md:flex-row flex-1 items-start gap-8 md:gap-12 px-4 md:px-8 pt-6 md:pt-10 max-w-5xl">
         {/* Left text */}
-        <div className="flex-1 min-w-0 pt-2">
-          <h1 className="text-3xl font-bold text-[var(--foreground)] mb-3 leading-tight">
+        <div className="flex-1 min-w-0 md:pt-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-[var(--foreground)] mb-3 leading-tight">
             {isPartial
               ? 'Upload what you have'
               : 'Great! Thanks for preparing your RFQ'}
@@ -1264,7 +1264,7 @@ function UploadStep({
         </div>
 
         {/* Upload zone */}
-        <div className="w-[420px] flex-shrink-0">
+        <div className="w-full md:w-[420px] md:flex-shrink-0">
           <div
             onClick={() => inputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -1312,16 +1312,16 @@ function UploadStep({
       </div>
 
       {/* Bottom bar */}
-      <div className="flex items-center justify-between px-8 pb-8 mt-auto pt-6">
+      <div className="flex items-center justify-between px-4 md:px-8 pb-6 md:pb-8 mt-auto pt-6">
         <button
           onClick={onSkip}
           className="flex items-center gap-1.5 text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
         >
-          <span className="text-base">‹</span> I don&apos;t have anything yet
+          <span className="text-base">‹</span> <span className="hidden sm:inline">I don&apos;t have anything yet</span><span className="sm:hidden">Skip</span>
         </button>
         <button
           onClick={() => onSubmit(files)}
-          className="px-7 py-2.5 rounded-full bg-[var(--muted)]/60 hover:bg-[var(--muted)] text-sm font-semibold text-[var(--foreground)] border border-[var(--border)] hover:border-primary/30 transition-all duration-150 disabled:opacity-40"
+          className="px-5 md:px-7 py-2.5 rounded-full bg-[var(--muted)]/60 hover:bg-[var(--muted)] text-sm font-semibold text-[var(--foreground)] border border-[var(--border)] hover:border-primary/30 transition-all duration-150 disabled:opacity-40"
         >
           Submit
         </button>
