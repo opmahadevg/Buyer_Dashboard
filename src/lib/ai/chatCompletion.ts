@@ -26,6 +26,15 @@ export async function getStreamingChatCompletion(
   onError: (error: Error) => void,
   parameters: object = {}
 ) {
+  // Track whether onComplete has been called so we never call it twice
+  let completed = false;
+  const safeComplete = () => {
+    if (!completed) {
+      completed = true;
+      onComplete();
+    }
+  };
+
   try {
     const response = await fetch(ENDPOINT, {
       method: 'POST',
@@ -58,22 +67,26 @@ export async function getStreamingChatCompletion(
             const data = JSON.parse(line.slice(6));
             if (data.type === 'chunk' && data.chunk) {
               onChunk(data.chunk);
-            } else if (data.type === 'done') onComplete();
-            else if (data.type === 'error') {
-              console.error('API Route Error:', {
-                error: data.error,
-                details: data.details,
-              });
-              onError(new Error(data.error));
+            } else if (data.type === 'done') {
+              safeComplete();
+            } else if (data.type === 'error') {
+              console.error('API Route Error:', { error: data.error, details: data.details });
+              onError(new Error(data.error || 'Stream error'));
+              return; // stop reading — error already reported
             }
           } catch {
-            // Skip invalid JSON
+            // Skip invalid JSON lines
           }
         }
       }
     }
+
+    // Safety net: stream ended (done=true) but we never received a 'done' SSE event.
+    // This happens when the connection drops or the provider closes without a clean finish.
+    // Always unblock the UI in this case.
+    safeComplete();
   } catch (error) {
     console.error('Streaming error:', error);
-    onError(error instanceof Error ? error : new Error('Streaming error'));
+    onError(error instanceof Error ? error : new Error('Streaming failed'));
   }
 }
