@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: 'Proquoment <onboarding@resend.dev>',
+        from: 'Proquoment <noreply@proquoment.in>',
         to: [to],
         subject: 'Proquoment — Email Test',
         html: '<h2>Email is working!</h2><p>Your Resend integration with Proquoment is configured correctly.</p>',
