@@ -59,7 +59,6 @@ export default function AccountContent() {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
     setForm(getStoredOrg());
   }, []);
@@ -87,7 +86,7 @@ export default function AccountContent() {
     <button
       onClick={handleSave}
       disabled={saving}
-      className={`flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-60 active:scale-95 ${extraClass} ${
+      className={`flex items-center gap-2 px-4 md:px-5 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 disabled:opacity-60 active:scale-95 ${extraClass} ${
         saved ? 'bg-green-500 text-white' : 'bg-primary text-white hover:bg-[#2e29c4]'
       }`}
     >
@@ -98,33 +97,33 @@ export default function AccountContent() {
       ) : (
         <Save size={15} />
       )}
-      {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+      {saving ? 'Saving…' : saved ? 'Saved' : 'Save'}
     </button>
   );
 
   return (
-    <div className="px-8 py-8 max-w-4xl mx-auto">
+    <div className="px-4 md:px-8 py-5 md:py-8 max-w-4xl mx-auto">
       <Toaster position="bottom-right" richColors />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6 md:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Account</h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Manage your organization profile and business details
+          <h1 className="text-xl md:text-2xl font-bold text-[var(--foreground)]">Account</h1>
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
+            Manage your organization profile
           </p>
         </div>
         <SaveButton />
       </div>
 
       {/* Organization Identity */}
-      <div className="bg-white rounded-xl border border-[var(--border)] p-6 mb-6">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
+        <div className="flex items-center gap-2 mb-4 md:mb-5">
           <Building2 size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Organization Identity</h2>
         </div>
-        <div className="flex items-center gap-4 mb-6 pb-5 border-b border-[var(--border)]">
-          <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl flex-shrink-0 transition-all duration-200">
+        <div className="flex items-center gap-3 mb-5 pb-4 border-b border-[var(--border)]">
+          <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-lg md:text-xl flex-shrink-0">
             {(form.name || 'O').charAt(0).toUpperCase()}
           </div>
           <div>
@@ -132,7 +131,7 @@ export default function AccountContent() {
             <p className="text-xs text-[var(--muted-foreground)]">{form.legalName}</p>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <Field label="Organization Name" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Honey's Org" />
           <Field label="Legal Name" name="legalName" value={form.legalName} onChange={handleChange} placeholder="e.g. Honey Enterprises Pvt. Ltd." />
           <Field label="Company Type" name="type" value={form.type} onChange={handleChange} placeholder="e.g. Private Limited Company" />
@@ -146,12 +145,12 @@ export default function AccountContent() {
       </div>
 
       {/* Contact Details */}
-      <div className="bg-white rounded-xl border border-[var(--border)] p-6 mb-6">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
+        <div className="flex items-center gap-2 mb-4 md:mb-5">
           <Phone size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Contact Details</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <Field label="Email Address" name="email" value={form.email} onChange={handleChange} placeholder="contact@yourorg.com" type="email" />
           <Field label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="+91 98765 43210" />
           <div className="md:col-span-2">
@@ -161,12 +160,12 @@ export default function AccountContent() {
       </div>
 
       {/* Address */}
-      <div className="bg-white rounded-xl border border-[var(--border)] p-6 mb-6">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6 mb-4 md:mb-6">
+        <div className="flex items-center gap-2 mb-4 md:mb-5">
           <MapPin size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Address</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <div className="md:col-span-2">
             <Field label="Street Address" name="street" value={form.street} onChange={handleChange} placeholder="Street, Building, Floor" />
           </div>
@@ -178,12 +177,12 @@ export default function AccountContent() {
       </div>
 
       {/* Business Info */}
-      <div className="bg-white rounded-xl border border-[var(--border)] p-6 mb-8">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6 mb-6 md:mb-8">
+        <div className="flex items-center gap-2 mb-4 md:mb-5">
           <FileText size={16} className="text-primary" />
           <h2 className="text-sm font-semibold text-[var(--foreground)]">Business Info</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           <Field label="Registration Number" name="registrationNumber" value={form.registrationNumber} onChange={handleChange} placeholder="e.g. REG-2018-HE-04421" />
           <Field label="Tax ID / GSTIN" name="taxId" value={form.taxId} onChange={handleChange} placeholder="e.g. GSTIN: 27AABCH1234F1Z5" />
         </div>
