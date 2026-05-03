@@ -1,64 +1,75 @@
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+  import { NextResponse, type NextRequest } from 'next/server';
 
-const PUBLIC_PATHS = ['/sign-up-login', '/auth/callback'];
+  const PUBLIC_PATHS = ['/sign-up-login', '/auth/callback'];
 
-function getProjectRef(): string {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  return url.match(/https:\/\/([^.]+)\./)?.[1] ?? '';
-}
+  function getProjectRef(url: string): string {
+    return url.match(/https:\/\/([^.]+)\./)?.[1] ?? '';
+  }
 
-function injectTokenFromHeader(request: NextRequest): void {
-  const token = request.headers.get('x-sb-token');
-  if (!token) return;
-  const hasCookie = request.cookies.getAll().some((c) => c.name.includes('auth-token'));
-  if (hasCookie) return;
-  request.cookies.set(`sb-${getProjectRef()}-auth-token`, token);
-}
+  function injectTokenFromHeader(request: NextRequest, projectRef: string): void {
+    const token = request.headers.get('x-sb-token');
+    if (!token) return;
+    const hasCookie = request.cookies.getAll().some((c) => c.name.includes('auth-token'));
+    if (hasCookie) return;
+    request.cookies.set(`sb-${projectRef}-auth-token`, token);
+  }
 
-export async function middleware(request: NextRequest) {
-  injectTokenFromHeader(request);
+  export async function middleware(request: NextRequest) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  let supabaseResponse = NextResponse.next({ request });
+    const { pathname } = request.nextUrl;
+    const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            supabaseResponse.cookies.set(name, value, options);
-          });
-        },
-      },
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.next({ request });
     }
-  );
 
-  const { data: { user } } = await supabase.auth.getUser();
+    try {
+      injectTokenFromHeader(request, getProjectRef(supabaseUrl));
 
-  const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+      let supabaseResponse = NextResponse.next({ request });
 
-  if (!user && !isPublic) {
-    const loginUrl = new URL('/sign-up-login', request.url);
-    if (pathname !== '/') loginUrl.searchParams.set('next', pathname);
-    return NextResponse.redirect(loginUrl);
+      const supabase = createServerClient(
+        supabaseUrl,
+        supabaseKey,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll();
+            },
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                request.cookies.set(name, value);
+                supabaseResponse.cookies.set(name, value, options);
+              });
+            },
+          },
+        }
+      );
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user && !isPublic) {
+        const loginUrl = new URL('/sign-up-login', request.url);
+        if (pathname !== '/') loginUrl.searchParams.set('next', pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+
+      if (user && pathname === '/sign-up-login') {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+
+      return supabaseResponse;
+    } catch {
+      return NextResponse.next({ request });
+    }
   }
 
-  if (user && pathname === '/sign-up-login') {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  return supabaseResponse;
-}
-
-export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-};
+  export const config = {
+    matcher: [
+      '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    ],
+  };
+  
