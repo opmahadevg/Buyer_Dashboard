@@ -867,14 +867,16 @@ function BuilderStep({ productText, productName }: { productText: string; produc
   // Streaming hook for conversational text only
   const { response: streamingResponse, isLoading: isStreaming, error: streamError, sendMessage: sendStreamingMessage } = useChat('AUTO', 'auto', true);
 
-  // Show toast on error
+  // On stream error: remove any stuck empty AI bubbles and show toast so user can retry
   useEffect(() => {
     if (streamError) {
+      // Remove the stuck streaming bubble (empty text, isStreaming flag still true)
+      setMessages((prev) => prev.filter((m) => !(m.role === 'ai' && m.isStreaming && !m.text)));
       const msg = streamError.message || '';
-      if (msg.includes('429') || msg.toLowerCase().includes('rate limit') || msg.toLowerCase().includes('quota')) {
-        toast.error('AI is busy — please wait a moment and try again.', { duration: 5000 });
+      if (msg.includes('503') || msg.toLowerCase().includes('unavailable') || msg.toLowerCase().includes('all ai')) {
+        toast.error('All AI providers are currently unavailable. Please try again shortly.', { duration: 6000 });
       } else {
-        toast.error(msg);
+        toast.error('AI connection interrupted — please send your message again.', { duration: 5000 });
       }
     }
   }, [streamError]);
