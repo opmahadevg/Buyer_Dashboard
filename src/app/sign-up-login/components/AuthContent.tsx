@@ -134,8 +134,8 @@ export default function AuthContent() {
         <div className="w-full max-w-md">
           {/* Logo — visible on all screen sizes at top of form */}
           <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-full bg-[#1e1b6e] flex items-center justify-center flex-shrink-0 overflow-hidden">
-              <img src="/proquoment-logo.png" alt="Proquoment" className="w-6 h-6 object-contain" />
+            <div className="w-9 h-9 rounded-full flex-shrink-0 overflow-hidden">
+              <img src="/proquoment-logo.png" alt="Proquoment" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-lg text-[var(--foreground)] tracking-tight">Proquoment</span>
           </div>
