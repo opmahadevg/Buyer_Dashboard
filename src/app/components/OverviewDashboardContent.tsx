@@ -13,10 +13,10 @@ const SpendChart = dynamic(() => import('./SpendChart'), { ssr: false });
 const QuotesByCategoryChart = dynamic(() => import('./QuotesByCategoryChart'), { ssr: false });
 
 const TIME_RANGES = [
-  { id: 'range-7d', label: 'Last 7 days' },
-  { id: 'range-30d', label: 'Last 30 days' },
+  { id: 'range-7d', label: '7d' },
+  { id: 'range-30d', label: '30d' },
   { id: 'range-monthly', label: 'Monthly' },
-  { id: 'range-custom', label: 'Custom range' },
+  { id: 'range-custom', label: 'Custom' },
 ];
 
 function getGreeting(): string {
@@ -100,23 +100,23 @@ export default function OverviewDashboardContent() {
   };
 
   return (
-    <div className="px-8 py-8 max-w-screen-2xl mx-auto">
+    <div className="px-4 md:px-8 py-5 md:py-8 max-w-screen-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
+          <h1 className="text-xl md:text-2xl font-bold text-[var(--foreground)]">
             {greeting}{orgName ? `, ${orgName}` : ''}
           </h1>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
+          <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
             Here&apos;s what&apos;s happening with your sourcing today.
           </p>
         </div>
-        <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1 self-start sm:self-auto">
           {TIME_RANGES.map((r) => (
             <button
               key={r.id}
               onClick={() => handleRangeChange(r.id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+              className={`px-2.5 md:px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
                 activeRange === r.id
                   ? 'bg-primary text-white shadow-sm'
                   : 'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)]'
@@ -129,9 +129,9 @@ export default function OverviewDashboardContent() {
       </div>
 
       {showCustom && (
-        <div className="mb-5 flex items-center gap-3 bg-white border border-[var(--border)] rounded-xl px-4 py-3 w-fit animate-slide-down-in">
+        <div className="mb-5 flex flex-wrap items-center gap-3 bg-white border border-[var(--border)] rounded-xl px-4 py-3 animate-slide-down-in">
           <Calendar size={15} className="text-[var(--muted-foreground)]" />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <input
               ref={fromRef}
               type="date"
@@ -156,7 +156,7 @@ export default function OverviewDashboardContent() {
       )}
 
       {/* KPI Cards */}
-      <div key={kpiKey} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-3 gap-4 mb-8 stagger-children">
+      <div key={kpiKey} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8 stagger-children">
         <div className="animate-slide-up">
           <KpiCard
             label="Total Spend"
@@ -170,9 +170,9 @@ export default function OverviewDashboardContent() {
         </div>
         <div className="animate-slide-up">
           <KpiCard
-            label="Active Sourcing Requests"
+            label="Active Requests"
             value={kpi.active}
-            subValue="Products currently in Quoting"
+            subValue="Products in Quoting"
             trend="neutral"
             trendValue="Same as last period"
             icon={<Package size={18} className="text-blue-600" />}
@@ -182,7 +182,7 @@ export default function OverviewDashboardContent() {
         </div>
         <div className="animate-slide-up">
           <KpiCard
-            label="Quote Acceptance Rate"
+            label="Quote Acceptance"
             value={kpi.acceptance}
             subValue="Of all received quotes"
             trend="down"
@@ -195,7 +195,7 @@ export default function OverviewDashboardContent() {
           <KpiCard
             label="Action Required"
             value={kpi.actionRequired}
-            subValue="Items needing your response"
+            subValue="Needs your response"
             trend="down"
             trendValue="Needs attention now"
             alert
@@ -206,9 +206,9 @@ export default function OverviewDashboardContent() {
         </div>
         <div className="animate-slide-up">
           <KpiCard
-            label="Avg. Quote Turnaround"
+            label="Avg. Turnaround"
             value={kpi.turnaround}
-            subValue="From RFQ to first quote"
+            subValue="RFQ to first quote"
             trend="up"
             trendValue={kpi.turnaroundTrend}
             icon={<Clock size={18} className="text-amber-600" />}
@@ -219,7 +219,7 @@ export default function OverviewDashboardContent() {
           <KpiCard
             label="Orders In Progress"
             value={kpi.ordersInProgress}
-            subValue="Active production / delivery"
+            subValue="Active production"
             trend="neutral"
             trendValue="On track"
             icon={<Truck size={18} className="text-teal-600" />}
@@ -230,11 +230,11 @@ export default function OverviewDashboardContent() {
       </div>
 
       {/* Charts Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl border border-[var(--border)] p-6 transition-all duration-200 hover:shadow-md hover:shadow-black/5">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-[var(--foreground)]">Total Spend Over Time</h2>
+              <h2 className="text-sm md:text-base font-semibold text-[var(--foreground)]">Total Spend Over Time</h2>
               <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Confirmed order value (USD)</p>
             </div>
             <span className="text-xs text-[var(--muted-foreground)] bg-[var(--muted)] px-2 py-1 rounded-md">
@@ -243,15 +243,15 @@ export default function OverviewDashboardContent() {
           </div>
           <SpendChart range={chartRange} />
         </div>
-        <div className="bg-white rounded-xl border border-[var(--border)] p-6 transition-all duration-200 hover:shadow-md hover:shadow-black/5">
+        <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-[var(--foreground)]">Quotes by Product Category</h2>
-              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Received vs. accepted quotes</p>
+              <h2 className="text-sm md:text-base font-semibold text-[var(--foreground)]">Quotes by Category</h2>
+              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">Received vs. accepted</p>
             </div>
-            <div className="flex items-center gap-3 text-xs text-[var(--muted-foreground)]">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-[#c7c5f8] inline-block" />Received</span>
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary inline-block" />Accepted</span>
+            <div className="flex items-center gap-2 text-xs text-[var(--muted-foreground)]">
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-[#c7c5f8] inline-block" />Rcvd</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-primary inline-block" />Accpd</span>
             </div>
           </div>
           <QuotesByCategoryChart range={activeRange} />
@@ -259,12 +259,12 @@ export default function OverviewDashboardContent() {
       </div>
 
       {/* Activity Feed */}
-      <div className="bg-white rounded-xl border border-[var(--border)] p-6 transition-all duration-200 hover:shadow-md hover:shadow-black/5">
+      <div className="bg-white rounded-xl border border-[var(--border)] p-4 md:p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Recent Activity</h2>
+          <h2 className="text-sm md:text-base font-semibold text-[var(--foreground)]">Recent Activity</h2>
           <button
             onClick={() => router.push('/products-list')}
-            className="text-xs text-primary font-medium hover:underline transition-all duration-150"
+            className="text-xs text-primary font-medium hover:underline"
           >
             View all
           </button>
