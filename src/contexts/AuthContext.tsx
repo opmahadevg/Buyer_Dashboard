@@ -51,21 +51,19 @@
       return supabaseRef.current;
     };
 
-    const signUp = async (email: string, password: string, metadata: any = {}) => {
-      const { data, error } = await getSupabase().auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: metadata?.fullName || '',
-            avatar_url: metadata?.avatarUrl || ''
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
-      });
-      if (error) throw error;
-      return data;
-    };
+    const signUp = async (email: string, password: string, metadata?: object) => {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: metadata,
+      emailRedirectTo: `${window.location.origin}/auth/callback?next=/`
+      // This tells Supabase where to redirect after email click
+    }
+  })
+  if (error) throw error
+  return data
+}
 
     const signIn = async (email: string, password: string) => {
       const { data, error } = await getSupabase().auth.signInWithPassword({
