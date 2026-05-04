@@ -15,7 +15,7 @@ const API_KEYS: Record<string, string | undefined> = {
 const FALLBACK_CHAIN = [
   {
     provider: 'GEMINI',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     keyEnv: 'GEMINI_API_KEY',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
     extraHeaders: {} as Record<string, string>,
