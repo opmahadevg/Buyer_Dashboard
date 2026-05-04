@@ -86,7 +86,7 @@ OPTIONS: 24 cm diameter, 26 cm diameter, 28 cm diameter, Custom / Type below`;
 // ─── System prompt for structured JSON extraction (NO conversational text) ───
 // Keep the last N history messages to avoid token-limit errors across all providers.
 // System prompt is always prepended separately, so this only trims conversation turns.
-const MAX_HISTORY_MESSAGES = 10;
+const MAX_HISTORY_MESSAGES = 20;
 function trimHistory(history: { role: string; content: string }[]) {
   return history.length > MAX_HISTORY_MESSAGES
     ? history.slice(history.length - MAX_HISTORY_MESSAGES)
