@@ -49,6 +49,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "@dhiwise/component-tagger": "^1.0.15",
     "@heroicons/react": "^2.2.0",
     "@rocketnew/llm-sdk": "^1.0.3",
