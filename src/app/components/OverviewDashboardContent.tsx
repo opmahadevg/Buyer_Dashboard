@@ -30,7 +30,7 @@ function getGreeting(): string {
 }
 
 // ── Demo account email — this user always sees pre-filled rich data ───────────
-const DEMO_EMAIL = 'demo@proquoment.com';
+const DEMO_EMAILS = new Set(['demo@proquoment.com', 'buyer@proquoment.com']);
 
 // ── Static demo KPI data (shown only to demo account) ────────────────────────
 const DEMO_KPI_DATA = {
