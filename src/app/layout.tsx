@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
 import '../styles/tailwind.css';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Analytics } from '@vercel/analytics/next';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -42,7 +43,8 @@ export default function RootLayout({
         <AuthProvider>
           {children}
         </AuthProvider>
-</body>
+        <Analytics /> 
+      </body>
     </html>
   );
 }
