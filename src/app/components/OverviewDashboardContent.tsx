@@ -122,7 +122,7 @@ export default function OverviewDashboardContent() {
     setUserName(displayName);
 
     // Check if this is the demo account
-    const demo = user.email === DEMO_EMAIL;
+    const demo = DEMO_EMAILS.has(user.email || '');
     setIsDemo(demo);
 
     if (demo) {
