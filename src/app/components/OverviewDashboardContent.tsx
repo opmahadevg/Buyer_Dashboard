@@ -8,6 +8,8 @@ import ActivityFeed from './ActivityFeed';
 import ChatButton from '@/components/ui/ChatButton';
 import { CHART_DATA } from './SpendChart';
 import { getStoredOrg, onOrgUpdated } from '@/lib/orgStore';
+import { productService } from '@/lib/services/dbService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SpendChart = dynamic(() => import('./SpendChart'), { ssr: false });
 const QuotesByCategoryChart = dynamic(() => import('./QuotesByCategoryChart'), { ssr: false });
@@ -27,7 +29,11 @@ function getGreeting(): string {
   return 'Good night';
 }
 
-const kpiData = {
+// ── Demo account email — this user always sees pre-filled rich data ───────────
+const DEMO_EMAIL = 'demo@proquoment.com';
+
+// ── Static demo KPI data (shown only to demo account) ────────────────────────
+const DEMO_KPI_DATA = {
   'range-7d': {
     spend: '$12,300', spendSub: 'vs $9,800 prev. week', spendTrend: '+25.5% vs previous period',
     active: '6', acceptance: '71%', acceptanceTrend: '+2.1% vs previous period',
@@ -54,8 +60,36 @@ const kpiData = {
   },
 };
 
+interface LiveKpi {
+  spend: string;
+  spendSub: string;
+  spendTrend: string;
+  active: string;
+  acceptance: string;
+  acceptanceTrend: string;
+  actionRequired: string;
+  turnaround: string;
+  turnaroundTrend: string;
+  ordersInProgress: string;
+}
+
+const EMPTY_KPI: LiveKpi = {
+  spend: '$0',
+  spendSub: 'No orders yet',
+  spendTrend: 'Create your first product to get started',
+  active: '0',
+  acceptance: '—',
+  acceptanceTrend: 'No quotes received yet',
+  actionRequired: '0',
+  turnaround: '—',
+  turnaroundTrend: 'No RFQs submitted yet',
+  ordersInProgress: '0',
+};
+
 export default function OverviewDashboardContent() {
   const router = useRouter();
+  const { user } = useAuth();
+
   const [activeRange, setActiveRange] = useState('range-30d');
   const [showCustom, setShowCustom] = useState(false);
   const [chartRange, setChartRange] = useState('range-30d');
@@ -63,16 +97,83 @@ export default function OverviewDashboardContent() {
   const [kpiKey, setKpiKey] = useState('range-30d');
   const [orgName, setOrgName] = useState('');
   const [greeting, setGreeting] = useState('');
+  const [isDemo, setIsDemo] = useState(false);
+  const [liveKpi, setLiveKpi] = useState<LiveKpi>(EMPTY_KPI);
+  const [kpiLoading, setKpiLoading] = useState(true);
+  const [userName, setUserName] = useState('');
   const fromRef = useRef<HTMLInputElement>(null);
   const toRef = useRef<HTMLInputElement>(null);
 
+  // ── Load org name + greeting ───────────────────────────────────────────────
   useEffect(() => {
     setOrgName(getStoredOrg().name);
     setGreeting(getGreeting());
     return onOrgUpdated(() => setOrgName(getStoredOrg().name));
   }, []);
 
-  const kpi = kpiData[activeRange as keyof typeof kpiData];
+  // ── Load user identity + real KPIs ────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+
+    // Extract display name from metadata or email
+    const fullName = user.user_metadata?.full_name || '';
+    const emailName = user.email?.split('@')[0] || '';
+    const displayName = fullName || emailName;
+    setUserName(displayName);
+
+    // Check if this is the demo account
+    const demo = user.email === DEMO_EMAIL;
+    setIsDemo(demo);
+
+    if (demo) {
+      setKpiLoading(false);
+      return;
+    }
+
+    // ── Real user: calculate live KPIs from their actual Supabase data ──────
+    setKpiLoading(true);
+    productService.getAll().then((products) => {
+      // Only count real user products (not static demo ones)
+      const userProducts = products.filter((p) => !p.isStatic);
+      const total = userProducts.length;
+
+      const activeQuoting = userProducts.filter((p) => p.stage === 'Quoting').length;
+      const actionRequired = userProducts.filter((p) => p.status === 'Action Required').length;
+      const inProduction = userProducts.filter(
+        (p) => p.stage === 'Production' || p.stage === 'Sampling'
+      ).length;
+      const completed = userProducts.filter((p) => p.stage === 'Completed').length;
+
+      if (total === 0) {
+        setLiveKpi(EMPTY_KPI);
+      } else {
+        setLiveKpi({
+          spend: completed > 0 ? `${completed} completed` : 'In progress',
+          spendSub: `${total} product${total > 1 ? 's' : ''} sourced`,
+          spendTrend: activeQuoting > 0 ? `${activeQuoting} currently in quoting` : 'No active quotes',
+          active: String(activeQuoting),
+          acceptance: total > 0 ? `${Math.round((completed / total) * 100)}%` : '—',
+          acceptanceTrend: completed > 0 ? `${completed} product${completed > 1 ? 's' : ''} completed` : 'No completed products yet',
+          actionRequired: String(actionRequired),
+          turnaround: '—',
+          turnaroundTrend: 'Based on your RFQ history',
+          ordersInProgress: String(inProduction),
+        });
+      }
+      setKpiLoading(false);
+    }).catch(() => {
+      setLiveKpi(EMPTY_KPI);
+      setKpiLoading(false);
+    });
+  }, [user]);
+
+  // ── Decide which KPI set to show ───────────────────────────────────────────
+  const kpi = isDemo
+    ? DEMO_KPI_DATA[activeRange as keyof typeof DEMO_KPI_DATA]
+    : liveKpi;
+
+  // ── Greeting name: org name > user name > fallback ─────────────────────────
+  const displayName = orgName || userName || '';
 
   const handleRangeChange = (id: string) => {
     setActiveRange(id);
@@ -105,10 +206,16 @@ export default function OverviewDashboardContent() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-[var(--foreground)]">
-            {greeting}{orgName ? `, ${orgName}` : ''}
+            {greeting}{displayName ? `, ${displayName}` : ''}
           </h1>
           <p className="text-sm text-[var(--muted-foreground)] mt-0.5">
-            Here&apos;s what&apos;s happening with your sourcing today.
+            {isDemo
+              ? "Here's what's happening with your sourcing today."
+              : kpiLoading
+              ? 'Loading your dashboard...'
+              : liveKpi.spend === '$0'
+              ? 'Welcome! Create your first product to start sourcing.'
+              : "Here's what's happening with your sourcing today."}
           </p>
         </div>
         <div className="flex items-center gap-1 bg-white border border-[var(--border)] rounded-lg p-1 self-start sm:self-auto">
@@ -155,15 +262,32 @@ export default function OverviewDashboardContent() {
         </div>
       )}
 
+      {/* New user empty state banner */}
+      {!isDemo && !kpiLoading && liveKpi.spend === '$0' && (
+        <div className="mb-6 flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+          <Package size={18} className="text-primary shrink-0" />
+          <p className="text-sm text-[var(--foreground)]">
+            Your dashboard is ready! Click{' '}
+            <button
+              onClick={() => router.push('/new-product')}
+              className="text-primary font-semibold hover:underline"
+            >
+              + New Product
+            </button>{' '}
+            to submit your first RFQ and start sourcing from Indian manufacturers.
+          </p>
+        </div>
+      )}
+
       {/* KPI Cards */}
       <div key={kpiKey} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-8 stagger-children">
         <div className="animate-slide-up">
           <KpiCard
             label="Total Spend"
-            value={kpi.spend}
-            subValue={kpi.spendSub}
+            value={kpiLoading ? '...' : kpi.spend}
+            subValue={kpiLoading ? '' : kpi.spendSub}
             trend="up"
-            trendValue={kpi.spendTrend}
+            trendValue={kpiLoading ? '' : kpi.spendTrend}
             icon={<DollarSign size={18} className="text-primary" />}
             iconBg="bg-[var(--secondary)]"
           />
@@ -171,10 +295,10 @@ export default function OverviewDashboardContent() {
         <div className="animate-slide-up">
           <KpiCard
             label="Active Requests"
-            value={kpi.active}
+            value={kpiLoading ? '...' : kpi.active}
             subValue="Products in Quoting"
             trend="neutral"
-            trendValue="Same as last period"
+            trendValue={isDemo ? 'Same as last period' : `${kpi.active} active RFQs`}
             icon={<Package size={18} className="text-blue-600" />}
             iconBg="bg-blue-50"
             href="/products-list"
@@ -183,10 +307,10 @@ export default function OverviewDashboardContent() {
         <div className="animate-slide-up">
           <KpiCard
             label="Quote Acceptance"
-            value={kpi.acceptance}
+            value={kpiLoading ? '...' : kpi.acceptance}
             subValue="Of all received quotes"
             trend="down"
-            trendValue={kpi.acceptanceTrend}
+            trendValue={kpiLoading ? '' : kpi.acceptanceTrend}
             icon={<TrendingUp size={18} className="text-purple-600" />}
             iconBg="bg-purple-50"
           />
@@ -194,11 +318,11 @@ export default function OverviewDashboardContent() {
         <div className="animate-slide-up">
           <KpiCard
             label="Action Required"
-            value={kpi.actionRequired}
+            value={kpiLoading ? '...' : kpi.actionRequired}
             subValue="Needs your response"
             trend="down"
-            trendValue="Needs attention now"
-            alert
+            trendValue={Number(kpi.actionRequired) > 0 ? 'Needs attention now' : 'All clear'}
+            alert={Number(kpi.actionRequired) > 0}
             icon={<AlertTriangle size={18} className="text-red-500" />}
             iconBg="bg-red-50"
             href="/products-list"
@@ -207,10 +331,10 @@ export default function OverviewDashboardContent() {
         <div className="animate-slide-up">
           <KpiCard
             label="Avg. Turnaround"
-            value={kpi.turnaround}
+            value={kpiLoading ? '...' : kpi.turnaround}
             subValue="RFQ to first quote"
             trend="up"
-            trendValue={kpi.turnaroundTrend}
+            trendValue={kpiLoading ? '' : kpi.turnaroundTrend}
             icon={<Clock size={18} className="text-amber-600" />}
             iconBg="bg-amber-50"
           />
@@ -218,7 +342,7 @@ export default function OverviewDashboardContent() {
         <div className="animate-slide-up">
           <KpiCard
             label="Orders In Progress"
-            value={kpi.ordersInProgress}
+            value={kpiLoading ? '...' : kpi.ordersInProgress}
             subValue="Active production"
             trend="neutral"
             trendValue="On track"
