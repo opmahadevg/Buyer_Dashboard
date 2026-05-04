@@ -15,6 +15,13 @@ const API_KEYS: Record<string, string | undefined> = {
 const FALLBACK_CHAIN = [
   {
     provider: 'GEMINI',
+    model: 'gemini-2.5-flash',
+    keyEnv: 'GEMINI_API_KEY',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    extraHeaders: {} as Record<string, string>,
+  },
+  {
+    provider: 'GEMINI',
     model: 'gemma-3-27b-it',
     keyEnv: 'GEMINI_API_KEY',
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
@@ -29,18 +36,18 @@ const FALLBACK_CHAIN = [
   },
   {
     provider: 'OPENROUTER',
-    model: 'meta-llama/llama-3.1-8b-instruct:free',
+    model: 'meta-llama/llama-3.3-70b-instruct:free',
     keyEnv: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     extraHeaders: {
-      'HTTP-Referer': 'https://buyer-dashboard-silk.vercel.app',
+      'HTTP-Referer': 'https://buyer.proquoment.in',
       'X-Title': 'Proquoment',
     },
   },
 ];
 
 // Status codes that mean "try the next provider"
-const RETRIABLE_STATUSES = new Set([400, 429, 500, 502, 503, 504]);
+const RETRIABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function formatErrorResponse(error: unknown, provider?: string) {
@@ -75,6 +82,7 @@ async function callOpenAICompat(
       ...extraHeaders,
     },
     body: JSON.stringify({ model, messages, stream, ...parameters }),
+    signal: AbortSignal.timeout(25000),
   });
 }
 
@@ -152,7 +160,8 @@ async function handleAutoFallback(
   for (const entry of FALLBACK_CHAIN) {
     const apiKey = process.env[entry.keyEnv];
     if (!apiKey) {
-      console.log(`[AI Fallback] Skipping ${entry.provider} — no API key configured`);
+      console.log(`[AI Fallback] Skipping ${entry.provider} (${entry.model}) — no API key`);
+      errors.push(`${entry.provider} (${entry.model}): no API key`);
       continue;
     }
 
@@ -170,42 +179,60 @@ async function handleAutoFallback(
       );
 
       if (res.ok) {
-        console.log(`[AI Fallback] ✓ ${entry.provider} responded OK`);
+        console.log(`[AI Fallback] ✓ ${entry.provider} (${entry.model}) responded OK`);
         if (stream) return buildSSEStream(res, entry.provider);
         const data = await res.json();
-        return NextResponse.json({ ...data, _provider: entry.provider });
+        return NextResponse.json({ ...data, _provider: entry.provider, _model: entry.model });
       }
 
       const text = await res.text();
-      const errMsg = `${entry.provider} HTTP ${res.status}: ${text.slice(0, 300)}`;
+      const errMsg = `${entry.provider} (${entry.model}) HTTP ${res.status}: ${text.slice(0, 200)}`;
       errors.push(errMsg);
       console.warn(`[AI Fallback] ✗ ${errMsg}`);
 
-      const isRetriable = RETRIABLE_STATUSES.has(res.status);
-      if (!isRetriable) break;
+      if (res.status === 401 || res.status === 403) {
+        console.error(`[AI Fallback] Auth error on ${entry.provider} — check API key`);
+      }
+
+      continue;
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      errors.push(`${entry.provider} threw: ${msg}`);
+      errors.push(`${entry.provider} (${entry.model}): ${msg}`);
       console.warn(`[AI Fallback] ✗ ${entry.provider} threw: ${msg}`);
+      continue;
     }
   }
 
   if (attempted === 0) {
     return NextResponse.json(
-      { error: 'No AI providers configured', details: 'Add at least one of: GROQ_API_KEY, GEMINI_API_KEY, OPENROUTER_API_KEY' },
+      {
+        error: 'No AI providers configured',
+        details: 'Add at least one API key in Vercel env: GEMINI_API_KEY, GROQ_API_KEY, OPENROUTER_API_KEY',
+      },
       { status: 503 }
     );
   }
 
+  console.error('[AI Fallback] All providers failed:', errors);
   return NextResponse.json(
-    { error: 'All AI providers unavailable', details: errors.join(' | ') },
+    {
+      error: 'All AI providers are currently unavailable. Please try again shortly.',
+      details: errors.join(' | '),
+    },
     { status: 503 }
   );
 }
 
 // ─── POST handler ─────────────────────────────────────────────────────────────
 export async function POST(request: NextRequest) {
+  // ── Env diagnostics (visible in Vercel Function Logs) ──
+  console.log('[AI Route] Env check:', {
+    hasGemini: !!process.env.GEMINI_API_KEY,
+    hasGroq: !!process.env.GROQ_API_KEY,
+    hasOpenRouter: !!process.env.OPENROUTER_API_KEY,
+  });
+
   let body: any = {};
 
   try {
@@ -276,7 +303,11 @@ export async function POST(request: NextRequest) {
             controller.close();
           } catch (error) {
             const formatted = formatErrorResponse(error, provider);
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: formatted.error, details: formatted.details })}\n\n`));
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'error', error: formatted.error, details: formatted.details })}\n\n`
+              )
+            );
             controller.close();
           }
         },
