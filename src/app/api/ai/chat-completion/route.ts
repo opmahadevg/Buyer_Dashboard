@@ -14,29 +14,29 @@ const API_KEYS: Record<string, string | undefined> = {
 // ─── Fallback Chain ────────────────────────────────────────────────────────────
 const FALLBACK_CHAIN = [
   {
-    provider: 'GEMINI',
-    model: 'gemini-2.5-flash',
-    keyEnv: 'GEMINI_API_KEY',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    extraHeaders: {} as Record<string, string>,
-  },
-  {
-    provider: 'GEMINI',
-    model: 'gemma-3-27b-it',
-    keyEnv: 'GEMINI_API_KEY',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
-    extraHeaders: {} as Record<string, string>,
-  },
-  {
     provider: 'GROQ',
-    model: 'llama-3.3-70b-versatile',
+    model: 'openai/gpt-oss-120b',       // ✅ Best quality on Groq, 200K TPD
     keyEnv: 'GROQ_API_KEY',
     baseUrl: 'https://api.groq.com/openai/v1',
     extraHeaders: {} as Record<string, string>,
   },
   {
+    provider: 'GROQ',
+    model: 'llama-3.1-8b-instant',       // ✅ Backup — 14.4K RPD, huge headroom
+    keyEnv: 'GROQ_API_KEY',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    extraHeaders: {} as Record<string, string>,
+  },
+  {
+    provider: 'GEMINI',
+    model: 'gemini-2.5-flash',           // ✅ When Groq hits limits
+    keyEnv: 'GEMINI_API_KEY',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    extraHeaders: {} as Record<string, string>,
+  },
+  {
     provider: 'OPENROUTER',
-    model: 'meta-llama/llama-3.3-70b-instruct:free',
+    model: 'mistralai/mistral-7b-instruct:free',
     keyEnv: 'OPENROUTER_API_KEY',
     baseUrl: 'https://openrouter.ai/api/v1',
     extraHeaders: {
