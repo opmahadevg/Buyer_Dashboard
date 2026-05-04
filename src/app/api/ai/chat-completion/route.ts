@@ -15,34 +15,24 @@ const API_KEYS: Record<string, string | undefined> = {
 const FALLBACK_CHAIN = [
   {
     provider: 'GROQ',
-    model: 'openai/gpt-oss-120b',       // ✅ Best quality on Groq, 200K TPD
+    model: 'openai/gpt-oss-120b',
     keyEnv: 'GROQ_API_KEY',
     baseUrl: 'https://api.groq.com/openai/v1',
     extraHeaders: {} as Record<string, string>,
   },
   {
     provider: 'GROQ',
-    model: 'llama-3.1-8b-instant',       // ✅ Backup — 14.4K RPD, huge headroom
-    keyEnv: 'GROQ_API_KEY',
+    model: 'openai/gpt-oss-120b',
+    keyEnv: 'GROQ_API_KEY_2',
     baseUrl: 'https://api.groq.com/openai/v1',
     extraHeaders: {} as Record<string, string>,
   },
   {
-    provider: 'GEMINI',
-    model: 'gemini-2.5-flash',           // ✅ When Groq hits limits
-    keyEnv: 'GEMINI_API_KEY',
-    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    provider: 'GROQ',
+    model: 'openai/gpt-oss-120b',
+    keyEnv: 'GROQ_API_KEY_3',
+    baseUrl: 'https://api.groq.com/openai/v1',
     extraHeaders: {} as Record<string, string>,
-  },
-  {
-    provider: 'OPENROUTER',
-    model: 'mistralai/mistral-7b-instruct:free',
-    keyEnv: 'OPENROUTER_API_KEY',
-    baseUrl: 'https://openrouter.ai/api/v1',
-    extraHeaders: {
-      'HTTP-Referer': 'https://buyer.proquoment.in',
-      'X-Title': 'Proquoment',
-    },
   },
 ];
 
