@@ -36,7 +36,7 @@ export function Globe({
   speed = 0.0015,
   theta = 0.25,
   diffuse = 1.4,
-  mapSamples = 20000,
+  mapSamples = 40000,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<{ x: number; y: number } | null>(null);
