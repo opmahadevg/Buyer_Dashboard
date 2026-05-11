@@ -25,7 +25,7 @@ interface GlobeProps {
 }
 
 const SUPPLIER_MARKERS: Marker[] = [
-  // ── INDIA ── (real coordinates, no negation)
+  // ── INDIA ──
   { id: 'in-mumbai',        location: [19.076,  72.877],  size: 0.08 },
   { id: 'in-delhi',         location: [28.613,  77.209],  size: 0.08 },
   { id: 'in-bangalore',     location: [12.971,  77.594],  size: 0.07 },
@@ -67,7 +67,7 @@ const SUPPLIER_MARKERS: Marker[] = [
   { id: 'in-aurangabad',    location: [19.876,  75.343],  size: 0.05 },
   { id: 'in-raipur',        location: [21.251,  81.629],  size: 0.05 },
 
-  // ── CHINA ── (real coordinates, no negation)
+  // ── CHINA ──
   { id: 'cn-shanghai',      location: [31.224, 121.469],  size: 0.065 },
   { id: 'cn-beijing',       location: [39.904, 116.407],  size: 0.065 },
   { id: 'cn-shenzhen',      location: [22.543, 114.058],  size: 0.065 },
@@ -93,18 +93,20 @@ const SUPPLIER_MARKERS: Marker[] = [
 export function Globe({
   markers = SUPPLIER_MARKERS,
   className = '',
-  markerColor = [0.23, 0.21, 0.91],
-  baseColor = [1, 1, 1],
-  glowColor = [0.82, 0.82, 0.96],
+  markerColor = [0.23, 0.21, 0.91] as [number, number, number],
+  baseColor = [1, 1, 1] as [number, number, number],
+  glowColor = [0.82, 0.82, 0.96] as [number, number, number],
   dark = 0,
   mapBrightness = 9,
   markerSize = 0.06,
-  speed = 0.015,
+  speed = 0.0015,
   theta = 0.1,
   diffuse = 1.4,
   mapSamples = 20000,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null);
+  const markersRef = useRef(markers);
   const pointerInteracting = useRef<{ x: number; y: number } | null>(null);
   const lastPointer = useRef<{ x: number; y: number; t: number } | null>(null);
   const dragOffset = useRef({ phi: 0, theta: 0 });
@@ -112,6 +114,12 @@ export function Globe({
   const phiOffsetRef = useRef(0);
   const thetaOffsetRef = useRef(0);
   const isPausedRef = useRef(false);
+  const phiRef = useRef(1.8);
+
+  // Keep markersRef in sync without triggering re-init
+  useEffect(() => {
+    markersRef.current = markers;
+  }, [markers]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     pointerInteracting.current = { x: e.clientX, y: e.clientY };
@@ -158,23 +166,22 @@ export function Globe({
     };
   }, [handlePointerMove, handlePointerUp]);
 
+  // ← INIT ONCE — empty dependency array, never re-runs on parent re-render
   useEffect(() => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
-    let globe: ReturnType<typeof createGlobe> | null = null;
     let animationId: number;
-    let phi = 1.8; // ← starts globe facing India/Asia
 
     function init() {
       const width = canvas.offsetWidth;
-      if (width === 0 || globe) return;
+      if (width === 0 || globeRef.current) return;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      globe = createGlobe(canvas, {
+      globeRef.current = createGlobe(canvas, {
         devicePixelRatio: dpr,
         width,
         height: width,
-        phi: 1.8, // ← initial render also faces India
+        phi: 1.8,
         theta,
         dark,
         diffuse,
@@ -184,7 +191,7 @@ export function Globe({
         markerColor,
         glowColor,
         markerElevation: 0.01,
-        markers: markers.map((m) => ({ location: m.location, size: m.size ?? markerSize, id: m.id })),
+        markers: markersRef.current.map((m) => ({ location: m.location, size: m.size ?? markerSize, id: m.id })),
         arcs: [],
         arcColor: markerColor,
         arcWidth: 0,
@@ -194,7 +201,7 @@ export function Globe({
 
       function animate() {
         if (!isPausedRef.current) {
-          phi += speed;
+          phiRef.current += speed;
           if (Math.abs(velocity.current.phi) > 0.0001 || Math.abs(velocity.current.theta) > 0.0001) {
             phiOffsetRef.current += velocity.current.phi;
             thetaOffsetRef.current += velocity.current.theta;
@@ -205,15 +212,15 @@ export function Globe({
           if (thetaOffsetRef.current < tMin) thetaOffsetRef.current += (tMin - thetaOffsetRef.current) * 0.1;
           else if (thetaOffsetRef.current > tMax) thetaOffsetRef.current += (tMax - thetaOffsetRef.current) * 0.1;
         }
-        globe!.update({
-          phi: phi + phiOffsetRef.current + dragOffset.current.phi,
+        globeRef.current!.update({
+          phi: phiRef.current + phiOffsetRef.current + dragOffset.current.phi,
           theta: theta + thetaOffsetRef.current + dragOffset.current.theta,
           dark,
           mapBrightness,
           markerColor,
           baseColor,
           markerElevation: 0.01,
-          markers: markers.map((m) => ({ location: m.location, size: m.size ?? markerSize, id: m.id })),
+          markers: markersRef.current.map((m) => ({ location: m.location, size: m.size ?? markerSize, id: m.id })),
         });
         animationId = requestAnimationFrame(animate);
       }
@@ -231,10 +238,11 @@ export function Globe({
     }
 
     return () => {
-      if (animationId) cancelAnimationFrame(animationId);
-      if (globe) globe.destroy();
+      cancelAnimationFrame(animationId);
+      globeRef.current?.destroy();
+      globeRef.current = null;
     };
-  }, [markers, markerColor, baseColor, glowColor, dark, mapBrightness, markerSize, speed, theta, diffuse, mapSamples]);
+  }, []); // ← empty array = init once, never resets on typing
 
   return (
     <div className={`relative aspect-square select-none ${className}`}>
