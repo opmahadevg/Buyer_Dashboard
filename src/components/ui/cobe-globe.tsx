@@ -24,19 +24,37 @@ interface GlobeProps {
   mapSamples?: number;
 }
 
+function generateGlobalMarkers(steps: number): Marker[] {
+  const markers: Marker[] = [];
+  for (let i = 0; i < steps; i++) {
+    for (let j = 0; j < steps; j++) {
+      const lat = -60 + (i / steps) * 120;
+      const lon = -180 + (j / steps) * 360;
+      markers.push({
+        id: `global-${i}-${j}`,
+        location: [lat, lon],
+        size: 0.02,
+      });
+    }
+  }
+  return markers;
+}
+
+const GLOBAL_MARKERS = generateGlobalMarkers(20); // 400 blue dots — change 20 to increase/decrease
+
 export function Globe({
-  markers = [],
+  markers = GLOBAL_MARKERS,
   className = '',
   markerColor = [0.23, 0.21, 0.91],
   baseColor = [1, 1, 1],
   glowColor = [0.82, 0.82, 0.96],
   dark = 0,
   mapBrightness = 9,
-  markerSize = 0.03,
+  markerSize = 0.02,
   speed = 0.0015,
   theta = 0.25,
   diffuse = 1.4,
-  mapSamples = 40000,
+  mapSamples = 20000,
 }: GlobeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const pointerInteracting = useRef<{ x: number; y: number } | null>(null);
